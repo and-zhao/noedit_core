@@ -109,10 +109,13 @@ def build() -> Path:
     shutil.copytree(root / PACKAGE_DIR, out / PACKAGE_DIR, ignore=COPY_IGNORE)
     _inject_prelude(out / PACKAGE_DIR / "__init__.py")
 
-    # 5) 图标资源。
-    #    注意：不带 README——它们是开发仓库文档，里面的 `skill/references/...`
+    # 5) 图标资源：UI 只引用 /img/logo.svg（server.py 的 IMG_DIR 指向 skill 根下的 img/），
+    #    所以只拷这一个文件。仓库根 img/ 里还有 README 用的演示图和视频（几十 MB），
+    #    skill 用不到，整目录拷进来会把包撑大。
+    #    不带 README——它们是开发仓库文档，里面的 `skill/references/...`
     #    相对链接在打包后的目录里不存在，带上反而误导；skill 的权威说明是 SKILL.md。
-    shutil.copytree(root / "img", out / "img")
+    (out / "img").mkdir()
+    shutil.copy2(root / "img" / "logo.svg", out / "img" / "logo.svg")
 
     # 6) 校验：frontmatter 的 name 必须等于目录名（skill 规范的硬要求）
     declared = _read_skill_name(out / "SKILL.md")
