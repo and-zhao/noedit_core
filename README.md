@@ -279,7 +279,7 @@ CLI / API itself.
 Option 1 — let your agent install it from the release package. Hand it this link and say "install this skill":
 
 ```
-https://github.com/andzhaojiale/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
+https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
 ```
 
 The agent downloads the archive, finds the single `noedit-core/` folder containing `SKILL.md`, and

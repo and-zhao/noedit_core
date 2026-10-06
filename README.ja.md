@@ -279,7 +279,7 @@ CLI / API を叩いて PPT を作り上げます。
 方法 1 — skill 対応のエージェントに下のリンクを渡し、「この skill をインストールして」と言うだけ：
 
 ```
-https://github.com/andzhaojiale/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
+https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
 ```
 
 エージェントがアーカイブをダウンロードし、`SKILL.md` を含む唯一の `noedit-core/` フォルダを見つけて、

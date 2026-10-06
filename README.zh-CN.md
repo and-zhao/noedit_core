@@ -273,7 +273,7 @@ api.export(path, "pptx")
 方式一：让你的 agent 直接从 Release 安装。把下边这个链接丢给它，说一句「安装这个 skill」即可：
 
 ```
-https://github.com/andzhaojiale/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
+https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
 ```
 
 agent 会下载压缩包、找到其中唯一含 `SKILL.md` 的 `noedit-core/` 目录，装到全局 skills 根下
