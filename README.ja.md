@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/export-pptx%20%7C%20pdf%20%7C%20png%20%7C%20svg%20%7C%20html-success?style=flat-square" alt="Export">
   <img src="https://img.shields.io/badge/icons-1800%2B-orange?style=flat-square" alt="Icons">
+  <img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue?style=flat-square" alt="License">
 </p>
 
 <p align="center"><b>最小構成の PPT 作成コア</b>：素の Python パッケージで複数ページのキャンバス（スライド）を作り、pptx / pdf / html / png / svg に書き出せます。</p>
@@ -32,7 +33,7 @@
   </tr>
   <tr>
     <td align="right"><b>概要</b></td>
-    <td>オープンソースの PPT <b>コア</b> + <b>Agent Skill</b>。素の Python パッケージで、あなた（またはエージェント）が動かします</td>
+    <td>ソース公開（source-available）の PPT <b>コア</b> + <b>Agent Skill</b>。素の Python パッケージで、あなた（またはエージェント）が動かします</td>
     <td>すぐ使える<b>デスクトップアプリ</b>。インストールして起動するだけ</td>
   </tr>
   <tr>
@@ -370,6 +371,12 @@ python tests/smoke.py
 HTML / PPTX 書き出し（マイクロシーンの自動フレーム取り込み GIF を含む）→ ローカル UI サーバーのセルフチェック
 （`/api/ping`、`/api/call` の追加・変更・削除、`/canvas` プレビュー）→ ベクターアイコンライブラリ（グループ / 検索 /
 単色・多色の挿入）。出力は `_smoke_out/`（削除可）。最後に `SMOKE OK` と表示されれば成功です。
+
+## ライセンス
+
+**PolyForm Noncommercial License 1.0.0** —— あらゆる非商用利用は無償です（個人の学習、ホビープロジェクト、研究・実験、教育、非営利団体、政府機関など）。**商用利用には別途ライセンスが必要です**——[andzhaojiale@163.com](mailto:andzhaojiale@163.com) までご連絡ください。
+
+つまり NoEdit Core は **ソース公開（source-available）** であり、OSI 定義のオープンソースではありません。本プロジェクトに同梱・利用している第三者コンポーネント（KaTeX、draw.io stencils、Apollon、Bioicons、python-pptx など）はそれぞれのライセンスに従います。詳細は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。
 
 ## 著者
 

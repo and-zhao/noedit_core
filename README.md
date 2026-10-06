@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/export-pptx%20%7C%20pdf%20%7C%20png%20%7C%20svg%20%7C%20html-success?style=flat-square" alt="Export">
   <img src="https://img.shields.io/badge/icons-1800%2B-orange?style=flat-square" alt="Icons">
+  <img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue?style=flat-square" alt="License">
 </p>
 
 <p align="center">A <b>minimal PPT creation core</b>: build multi-page canvases (decks) with a plain Python package, and export to pptx / pdf / html / png / svg.</p>
@@ -32,7 +33,7 @@
   </tr>
   <tr>
     <td align="right"><b>What it is</b></td>
-    <td>Open-source PPT <b>core</b> + <b>Agent Skill</b> — a plain Python package that you (or your agent) drive</td>
+    <td>Source-available PPT <b>core</b> + <b>Agent Skill</b> — a plain Python package that you (or your agent) drive</td>
     <td>Ready-to-use <b>desktop app</b>, works out of the box</td>
   </tr>
   <tr>
@@ -370,6 +371,12 @@ Runs the full loop: create a project → insert 3 element types → update → a
 export HTML / PPTX (incl. the auto-captured GIF for micro-scenes) → local UI server self-check (`/api/ping`, `/api/call`
 add/update/delete, `/canvas` preview) → vector icon library (groups / search / monochrome & multi-color insert). Output goes
 to `_smoke_out/` (safe to delete). It prints `SMOKE OK` on success.
+
+## License
+
+**PolyForm Noncommercial License 1.0.0** — free for any noncommercial use (personal study, hobby projects, research, experiments, education, nonprofits, government). **Commercial use requires a separate license** — contact [andzhaojiale@163.com](mailto:andzhaojiale@163.com).
+
+That makes NoEdit Core **source-available**, not OSI open source. Third-party components bundled with or used by this project (KaTeX, draw.io stencils, Apollon, Bioicons, python-pptx…) keep their own licenses — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Author
 

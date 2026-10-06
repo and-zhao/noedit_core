@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/python-3.10%2B-blue?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/export-pptx%20%7C%20pdf%20%7C%20png%20%7C%20svg%20%7C%20html-success?style=flat-square" alt="Export">
   <img src="https://img.shields.io/badge/icons-1800%2B-orange?style=flat-square" alt="Icons">
+  <img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue?style=flat-square" alt="License">
 </p>
 
 <p align="center">一个<b>最小 PPT 创作核心</b>：用一个普通 Python 包建多页画布（PPT），并导出 pptx / pdf / html / png / svg。</p>
@@ -32,7 +33,7 @@
   </tr>
   <tr>
     <td align="right"><b>是什么</b></td>
-    <td>开源的 PPT <b>核心库</b> + <b>Agent Skill</b>，一个普通 Python 包，由你（或你的 agent）驱动</td>
+    <td>源码可见的 PPT <b>核心库</b> + <b>Agent Skill</b>，一个普通 Python 包，由你（或你的 agent）驱动</td>
     <td>开箱即用的<b>桌面软件</b>，下载安装就能用</td>
   </tr>
   <tr>
@@ -363,6 +364,12 @@ python tests/smoke.py
 跑完整闭环：建工程 → 插 3 类元素 → 改 → 加页 → 导素材 → 层级 / 删除 → 导出 HTML / PPTX
 （含微场景自动抓帧内嵌 GIF）→ 本地 UI 服务自检（`/api/ping`、`/api/call` 增改删、`/canvas` 预览）
 → 矢量图标库（分组 / 搜索 / 单色与多色插入），产物在 `_smoke_out/`（可删）。结尾打印 `SMOKE OK` 即通过。
+
+## 许可
+
+**PolyForm Noncommercial License 1.0.0**——任何非商业用途免费（个人学习、业余项目、研究实验、教育、公益、政府机构等）。**商业用途需另行获得授权**，请联系 [andzhaojiale@163.com](mailto:andzhaojiale@163.com)。
+
+也就是说，NoEdit Core 属于**源码可见（source-available）**，而非 OSI 意义上的开源。项目内随包分发或使用的第三方组件（KaTeX、draw.io stencils、Apollon、Bioicons、python-pptx……）各自沿用其原有许可，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 ## 作者
 
