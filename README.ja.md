@@ -276,11 +276,22 @@ CLI / API を叩いて PPT を作り上げます。
 
 **インストール**
 
+方法 1 — skill 対応のエージェントに下のリンクを渡し、「この skill をインストールして」と言うだけ：
+
+```
+https://github.com/andzhaojiale/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
+```
+
+エージェントがアーカイブをダウンロードし、`SKILL.md` を含む唯一の `noedit-core/` フォルダを見つけて、
+グローバルの skills ルート（例：`~/.trae-cn/skills/noedit-core/`）にインストールします。
+
+方法 2 — 自分でビルドする：
+
 ```bash
 python packaging/build_skill.py     # dist/noedit-core/ と dist/noedit-core-skill.zip を生成
 ```
 
-`noedit-core/` フォルダごと skills ルートに置きます：
+どちらの方法でも、`noedit-core/` フォルダごと skills ルートに置きます：
 
 - グローバル：`~/.trae-cn/skills/noedit-core/`
 - プロジェクト単位：`<プロジェクト>/.trae/skills/noedit-core/`

@@ -276,11 +276,22 @@ CLI / API itself.
 
 **Install**
 
+Option 1 — let your agent install it from the release package. Hand it this link and say "install this skill":
+
+```
+https://github.com/andzhaojiale/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
+```
+
+The agent downloads the archive, finds the single `noedit-core/` folder containing `SKILL.md`, and
+installs it under its global skills root (e.g. `~/.trae-cn/skills/noedit-core/`).
+
+Option 2 — build the package yourself:
+
 ```bash
 python packaging/build_skill.py     # → dist/noedit-core/  +  dist/noedit-core-skill.zip
 ```
 
-Put the whole `noedit-core/` folder under your skills root:
+Either way, the whole `noedit-core/` folder goes under your skills root:
 
 - global: `~/.trae-cn/skills/noedit-core/`
 - project-level: `<project>/.trae/skills/noedit-core/`

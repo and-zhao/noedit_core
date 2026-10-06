@@ -270,11 +270,22 @@ api.export(path, "pptx")
 
 **安装**
 
+方式一：让你的 agent 直接从 Release 安装。把下边这个链接丢给它，说一句「安装这个 skill」即可：
+
+```
+https://github.com/andzhaojiale/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
+```
+
+agent 会下载压缩包、找到其中唯一含 `SKILL.md` 的 `noedit-core/` 目录，装到全局 skills 根下
+（如 `~/.trae-cn/skills/noedit-core/`）。
+
+方式二：自己打包：
+
 ```bash
 python packaging/build_skill.py     # 生成 dist/noedit-core/ 与 dist/noedit-core-skill.zip
 ```
 
-然后把整个 `noedit-core/` 目录放到 skills 根下：
+两种方式最终都是把整个 `noedit-core/` 目录放到 skills 根下：
 
 - 全局：`~/.trae-cn/skills/noedit-core/`
 - 项目级：`<项目>/.trae/skills/noedit-core/`
