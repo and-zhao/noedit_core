@@ -367,6 +367,8 @@ python tests/smoke.py
 
 ## 许可
 
+> Required Notice: Copyright 2026 Zhao Jiale (https://github.com/and-zhao/noedit_core)
+
 **PolyForm Noncommercial License 1.0.0**——任何非商业用途免费（个人学习、业余项目、研究实验、教育、公益、政府机构等）。**商业用途需另行获得授权**，请联系 [andzhaojiale@163.com](mailto:andzhaojiale@163.com)。
 
 也就是说，NoEdit Core 属于**源码可见（source-available）**，而非 OSI 意义上的开源。项目内随包分发或使用的第三方组件（KaTeX、draw.io stencils、Apollon、Bioicons、python-pptx……）各自沿用其原有许可，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

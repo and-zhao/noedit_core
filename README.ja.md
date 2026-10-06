@@ -374,6 +374,8 @@ HTML / PPTX 書き出し（マイクロシーンの自動フレーム取り込�
 
 ## ライセンス
 
+> Required Notice: Copyright 2026 Zhao Jiale (https://github.com/and-zhao/noedit_core)
+
 **PolyForm Noncommercial License 1.0.0** —— あらゆる非商用利用は無償です（個人の学習、ホビープロジェクト、研究・実験、教育、非営利団体、政府機関など）。**商用利用には別途ライセンスが必要です**——[andzhaojiale@163.com](mailto:andzhaojiale@163.com) までご連絡ください。
 
 つまり NoEdit Core は **ソース公開（source-available）** であり、OSI 定義のオープンソースではありません。本プロジェクトに同梱・利用している第三者コンポーネント（KaTeX、draw.io stencils、Apollon、Bioicons、python-pptx など）はそれぞれのライセンスに従います。詳細は [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) を参照してください。

@@ -374,6 +374,8 @@ to `_smoke_out/` (safe to delete). It prints `SMOKE OK` on success.
 
 ## License
 
+> Required Notice: Copyright 2026 Zhao Jiale (https://github.com/and-zhao/noedit_core)
+
 **PolyForm Noncommercial License 1.0.0** — free for any noncommercial use (personal study, hobby projects, research, experiments, education, nonprofits, government). **Commercial use requires a separate license** — contact [andzhaojiale@163.com](mailto:andzhaojiale@163.com).
 
 That makes NoEdit Core **source-available**, not OSI open source. Third-party components bundled with or used by this project (KaTeX, draw.io stencils, Apollon, Bioicons, python-pptx…) keep their own licenses — see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
