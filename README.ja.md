@@ -262,9 +262,29 @@ api.export(path, "pptx")
 - [vector-playbook.md](skill/references/vector-playbook.md) — ベクター機能の実践ガイド
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — 分野横断の原理図アトラス
 
-## エージェント向け：skill
+## Agent Skill として使う
 
-[`skill/SKILL.md`](skill/SKILL.md) はこのコアの**使用ルール**です。要点は 3 つ：
+このリポジトリは、そのまま自己完結型の **Agent Skill**（名前は `noedit-core`）としてインストールできます。
+skill 対応のエージェントに入れれば、あとは要望を伝えるだけで、エージェントが要素 JSON を書き、
+CLI / API を叩いて PPT を作り上げます。
+
+**インストール**
+
+```bash
+python packaging/build_skill.py     # dist/noedit-core/ と dist/noedit-core-skill.zip を生成
+```
+
+`noedit-core/` フォルダごと skills ルートに置きます：
+
+- グローバル：`~/.trae-cn/skills/noedit-core/`
+- プロジェクト単位：`<プロジェクト>/.trae/skills/noedit-core/`
+
+フォルダ名は `noedit-core` のままにしてください（`SKILL.md` の frontmatter にある `name` と一致必須）。
+実行データ（`settings.json` / `ui.json` / ロック）は既定で `~/.noedit_core/` に、既定のプロジェクト
+フォルダは skill フォルダの**隣**に作られます。`NOEDIT_CORE_ROOT` / `NOEDIT_CORE_PROJECTS` で上書きできます。
+
+**使い方** —— インストール後は、エージェントに要望を伝えるだけです（例：「X についての 10 ページの PPT を作って pptx で書き出して」）。
+エージェントは [`skill/SKILL.md`](skill/SKILL.md) に従って進めます。要点は 3 つ：
 
 1. **書くのはエージェント自身** — コアはコンテンツを生成しません。要素 JSON はエージェントが書きます。
 2. **「動く」もの：HTML は必ず動き、PPTX ではマイクロシーンも動く** — 要素アニメーション（`anim`）とマイクロシーン（`scene`）は HTML 書き出しで動作します。PPTX ではマイクロシーンをコアが自動でフレーム合成し GIF を埋め込みます。PDF / PNG / SVG は静止フレーム（マイクロシーンは `props.poster` を使用）。

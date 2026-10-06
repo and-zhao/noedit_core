@@ -262,9 +262,29 @@ Full signatures, return shapes and field dictionaries: [`skill/references/`](ski
 - [vector-playbook.md](skill/references/vector-playbook.md) — practical guide to the vector capabilities
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — cross-domain diagram atlas
 
-## For agents: skill
+## Use it as an Agent Skill
 
-[`skill/SKILL.md`](skill/SKILL.md) is the **usage rulebook** for this core. Three key points:
+This repo is packaged as a self-contained **Agent Skill** named `noedit-core`. Install it into a
+skill-aware agent and the agent builds the deck for you — it writes the element JSON and drives the
+CLI / API itself.
+
+**Install**
+
+```bash
+python packaging/build_skill.py     # → dist/noedit-core/  +  dist/noedit-core-skill.zip
+```
+
+Put the whole `noedit-core/` folder under your skills root:
+
+- global: `~/.trae-cn/skills/noedit-core/`
+- project-level: `<project>/.trae/skills/noedit-core/`
+
+Keep the folder name `noedit-core` — it must match the `name` in the `SKILL.md` frontmatter. Runtime
+data (`settings.json` / `ui.json` / locks) goes to `~/.noedit_core/`; the default project folder sits
+next to the skill folder. Override with `NOEDIT_CORE_ROOT` / `NOEDIT_CORE_PROJECTS`.
+
+**Use it** — once installed, just tell the agent what you want (e.g. "make a 10-page deck about X and
+export pptx"); it follows [`skill/SKILL.md`](skill/SKILL.md) by itself. Three rules worth knowing:
 
 1. **You (the agent) write the content** — the core does not generate content; the element JSON is written by the agent.
 2. **What "moves": HTML always animates, and micro-scenes animate inside PPTX too** — element animation (`anim`) and micro-scenes (`scene`) run in exported HTML; inside PPTX the core auto-captures frames and embeds a GIF; PDF / PNG / SVG are a static frame (micro-scenes use `props.poster`).

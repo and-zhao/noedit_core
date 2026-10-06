@@ -257,9 +257,28 @@ api.export(path, "pptx")
 - [vector-playbook.md](skill/references/vector-playbook.md) — 矢量能力用法手册
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — 跨领域原理图图谱
 
-## 给 Agent 用：skill
+## 作为 Agent Skill 使用
 
-[`skill/SKILL.md`](skill/SKILL.md) 是这套核心的**使用规则**。三条要点：
+本仓库可以直接装成一个自包含的 **Agent Skill**（名字 `noedit-core`）。装进支持 skill 的 agent 后，
+你只要提需求，agent 就会自己写元素 JSON、调 CLI / API 把 PPT 做出来。
+
+**安装**
+
+```bash
+python packaging/build_skill.py     # 生成 dist/noedit-core/ 与 dist/noedit-core-skill.zip
+```
+
+然后把整个 `noedit-core/` 目录放到 skills 根下：
+
+- 全局：`~/.trae-cn/skills/noedit-core/`
+- 项目级：`<项目>/.trae/skills/noedit-core/`
+
+目录名必须保持 `noedit-core`——它要和 `SKILL.md` frontmatter 里的 `name` 一致。运行数据
+（`settings.json` / `ui.json` / 锁）默认落 `~/.noedit_core/`；默认工程目录在 skill 目录的**同级**，
+可用 `NOEDIT_CORE_ROOT` / `NOEDIT_CORE_PROJECTS` 覆盖。
+
+**怎么用**——装好后直接对 agent 说需求即可（例如「做一份关于 X 的 10 页 PPT 并导出 pptx」），
+agent 会自行遵循 [`skill/SKILL.md`](skill/SKILL.md)。三条要点：
 
 1. **落笔的就是 agent 自己**——核心不生成内容，元素 JSON 由 agent 写。
 2. **「会动」的：HTML 一定动，PPTX 里微场景也动**——元素动画（`anim`）与微场景（`scene`）导 HTML 会跑；PPTX 里微场景由核心自动抓帧合成 GIF 内嵌，PDF / PNG / SVG 是静态帧（微场景取 `props.poster`）。
