@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="NoEdit">
+  <defs>
+    <linearGradient id="neBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6aa1ff"/>
+      <stop offset="48%" stop-color="#2f6fed"/>
+      <stop offset="100%" stop-color="#153a9e"/>
+    </linearGradient>
+    <radialGradient id="neGlow" cx="33%" cy="22%" r="80%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".26"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="neSlash" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffcf85"/>
+      <stop offset="55%" stop-color="#ffb648"/>
+      <stop offset="100%" stop-color="#ff9c26"/>
+    </linearGradient>
+    <filter id="neShadow" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0b1f5c" flood-opacity=".32"/>
+    </filter>
+    <clipPath id="neClip"><rect width="1024" height="1024" rx="232"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#neBg)"/>
+  <rect width="1024" height="1024" rx="232" fill="url(#neGlow)"/>
+  <g clip-path="url(#neClip)">
+    <!-- NoEdit 的单字标：N 的两根竖笔是白色的「编辑」，斜笔是琥珀色的「No」——不编辑。 -->
+    <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="156" filter="url(#neShadow)">
+      <path d="M276 756 L276 268" stroke="#ffffff"/>
+      <path d="M748 756 L748 268" stroke="#ffffff"/>
+      <path d="M276 268 L748 756" stroke="url(#neSlash)"/>
+    </g>
+  </g>
+</svg>

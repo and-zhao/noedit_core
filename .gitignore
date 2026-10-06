@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 运行时数据与状态（本机 settings / ui.json / 缓存 / 锁）
+noedit_core/data/
+
+# 打包产物
+dist/
+
+# 自测产物
+_smoke_out/
+*.log
+
+# 示例 / 业务 pptx
+slides/

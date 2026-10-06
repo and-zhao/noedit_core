@@ -1,0 +1,851 @@
+{
+  "_note": "元素参数元数据（唯一配置源）。前端属性面板、新元素默认值、AI 提示词清单都由本文件生成；后端 app/llm.py 也读取本文件。新增一个参数：在对应类型的 sections 里加一个字段即可（widget 取值 text/number/color/checkbox/select/range/textarea/rows/colorList/strList/numList/lines，控件实现在 web/js/panels.js 与 plugins/inspector/web/panel.js 的 WIDGETS）。",
+  "_fieldHelp": {
+    "path": "写入元素的点路径，props.xxx 为类型专属参数，style.xxx 为通用样式",
+    "label": "控件左侧文字，留空则只显示控件本身",
+    "widget": "控件类型",
+    "default": "新元素的初始值（会被写进元素数据，缺省表示不写入）",
+    "fallback": "仅面板显示的兜底值（不写入元素数据）",
+    "options": "下拉选项，可写 [\"cover\"] 或 [[\"cover\",\"裁剪填满\"]]",
+    "desc": "给 AI 看的参数说明",
+    "hint": "面板上的灰色提示文字（不绑定字段）",
+    "action": "字段级动作按钮（配 widget=action）：实现在 web/js/panels.js 的 FIELD_ACTIONS 里按名字登记"
+  },
+  "_aliasesNote": "别名表：模型习惯照 CSS 写法造键（style.fill、props.fillColor…），引擎不认、静默丢效果。这里的「源键 → 规范字段」由前后端共用同一份（app/projects.py 与 web/js/store.js），落盘/读盘自动改写。规则：源键不是该类型的合法字段时才生效（table 的 props.fontSize 是它自己的单元格字号，不能抢）。条目可写字符串，也可写 {to, values}：values 把布尔值映射成目标字段要的写法（如 bold 的 true→700）。",
+  "aliases": {
+    "style.fill": "style.background",
+    "style.fillColor": "style.background",
+    "style.backgroundColor": "style.background",
+    "style.stroke": "style.borderColor",
+    "style.strokeColor": "style.borderColor",
+    "style.strokeWidth": "style.borderWidth",
+    "style.radius": "style.borderRadius",
+    "style.align": "style.textAlign",
+    "style.opacity": "opacity",
+    "style.bold": { "to": "style.fontWeight", "values": { "true": "700", "false": "400" } },
+    "props.fill": "style.background",
+    "props.fillColor": "style.background",
+    "props.backgroundColor": "style.background",
+    "props.background": "style.background",
+    "props.stroke": "style.borderColor",
+    "props.strokeColor": "style.borderColor",
+    "props.borderColor": "style.borderColor",
+    "props.strokeWidth": "style.borderWidth",
+    "props.borderWidth": "style.borderWidth",
+    "props.borderRadius": "style.borderRadius",
+    "props.radius": "style.borderRadius",
+    "props.color": "style.color",
+    "props.fontSize": "style.fontSize",
+    "props.lineHeight": "style.lineHeight",
+    "props.textAlign": "style.textAlign",
+    "props.name": "name",
+    "props.headerBackground": "props.headerBg",
+    "props.zebraColor": "props.altBg"
+  },
+  "_runtimePropsNote": "渲染 / 运行时自己写进元素、但没走本配置的 props 键（面板调不了）。体检放行它们，免得把合法的运行时字段当成错键报出来。",
+  "runtimeProps": {
+    "connector": ["d", "arrowStartPath", "arrowEndPath", "arrowStartPaint", "arrowEndPaint", "arrowStart", "arrowEnd", "via", "ctrl"],
+    "image": ["masks"],
+    "scene": ["params"],
+    "path": ["fromShape"],
+    "shape": ["fromShape", "d", "fillRule"]
+  },
+  "_runtimeStyleNote": "渲染读得到、但没有面板控件的全局 style 键（投影是结构体，不适合做成控件）。体检放行它们。",
+  "runtimeStyle": ["shadow", "boxShadow"],
+  "_commonFieldsNote": "所有类型共用的元素顶层字段（IR 结构），给模型的字段契约由它生成。",
+  "commonFields": ["x", "y", "w", "h", "z", "rotate", "opacity", "visible", "parentId", "name", "anim"],
+  "commonStyle": {
+    "sep": true,
+    "title": "样式",
+    "rows": [
+      { "cols": 1, "fields": [
+        { "path": "style.fontFamily", "label": "字体", "widget": "select", "fallback": "Microsoft YaHei",
+          "options": [
+            ["Microsoft YaHei", "微软雅黑"],
+            ["DengXian", "等线"],
+            ["SimSun", "宋体"],
+            ["NSimSun", "新宋体"],
+            ["SimHei", "黑体"],
+            ["KaiTi", "楷体"],
+            ["FangSong", "仿宋"],
+            ["Microsoft JhengHei", "微软正黑"],
+            ["Arial", "Arial"],
+            ["Calibri", "Calibri"],
+            ["Cambria", "Cambria"],
+            ["Times New Roman", "Times New Roman"],
+            ["Georgia", "Georgia"],
+            ["Verdana", "Verdana"],
+            ["Tahoma", "Tahoma"],
+            ["Trebuchet MS", "Trebuchet MS"],
+            ["Segoe UI", "Segoe UI"],
+            ["Consolas", "Consolas"],
+            ["Courier New", "Courier New"],
+            ["Impact", "Impact"]
+          ],
+          "desc": "内置的都是 Windows 自带、浏览器与 PPTX 都能正确显示的常用字体（中英文各一套）。老工程里的其它字体名会原样保留在选项里" }
+      ] },
+      { "cols": 2, "fields": [
+        { "path": "style.fontSize", "widget": "number", "min": 8, "max": 300, "fallback": 0 },
+        { "path": "style.color", "widget": "color", "fallback": "#000000" }
+      ] },
+      { "cols": 2, "fields": [
+        { "path": "style.lineHeight", "widget": "number", "min": 0.8, "max": 4, "step": 0.05, "fallback": 1.5 },
+        { "path": "style.textAlign", "widget": "select", "fallback": "left",
+          "options": [["left", "left"], ["center", "center"], ["right", "right"], ["justify", "justify"]] }
+      ] },
+      { "cols": 2, "fields": [
+        { "path": "style.fontWeight", "widget": "select", "fallback": "400",
+          "options": [["300", "粗细 300"], ["400", "粗细 400"], ["500", "粗细 500"], ["600", "粗细 600"], ["700", "粗细 700"], ["900", "粗细 900"]] },
+        { "path": "style.background", "widget": "color", "fallback": "#000000" }
+      ] },
+      { "cols": 1, "fields": [
+        { "path": "props.rasterMode", "label": "导出方式", "widget": "select", "fallback": "vector",
+          "options": [["vector", "矢量优先"], ["raster", "稳截图"]],
+          "desc": "该元素导出 PPTX / SVG 时的取舍。矢量优先（默认）：能用原生矢量表达就用（PPTX 里可继续编辑节点、图表数据、表格单元格、代码与公式文字），碰上渐变、投影、发光、半透明等矢量保不了的效果，或矢量写入失败时，自动回退成截图；稳截图：这个元素一律按画布截图贴图，100% 与画布一致，但不可编辑。图表 / 表格走原生图表与原生表格，代码块 / 公式走「逐行文本 + 卡片图元」重建，实在保不住才截图" }
+      ] }
+    ]
+  },
+  "_unifyNote": "统一样式：把「同一个视觉概念」在不同类型里的真实字段列成一张表，供多选批量套用。slots[].paths 是「类型 → 点路径」，某类型没列就是它没有这个概念（卡片不显示该类型）。注意 style.borderWidth 一字段两义：在 shape/path/connector 上是描边，在别的类型上是外框，所以两处分别归到「图线粗细」和「面板外框」两个槽里，不能合成一个。",
+  "unify": {
+    "title": "统一样式",
+    "slots": [
+      { "key": "bodyFont", "label": "正文字号", "min": 6, "max": 200, "step": 1,
+        "paths": {
+          "text": "style.fontSize", "link": "style.fontSize",
+          "table": "props.fontSize", "code": "props.fontSize", "chart": "props.fontSize"
+        } },
+      { "key": "titleFont", "label": "标题字号", "min": 6, "max": 200, "step": 1,
+        "paths": { "chart": "props.titleSize" } },
+      { "key": "lineWidth", "label": "图线粗细", "min": 0, "max": 40, "step": 0.5,
+        "paths": {
+          "chart": "props.lineWidth",
+          "shape": "style.borderWidth", "path": "style.borderWidth", "connector": "style.borderWidth"
+        } },
+      { "key": "frameWidth", "label": "面板外框", "min": 0, "max": 40, "step": 0.5,
+        "paths": {
+          "text": "style.borderWidth", "image": "style.borderWidth", "video": "style.borderWidth",
+          "table": "style.borderWidth", "code": "style.borderWidth", "chart": "style.borderWidth"
+        } }
+    ]
+  },
+  "types": {
+    "text": {
+      "label": "文本",
+      "name": "文本",
+      "w": 420,
+      "h": 90,
+      "style": { "fontFamily": "Microsoft YaHei", "fontSize": 24, "color": "#1f2328", "lineHeight": 1.5, "textAlign": "left" },
+      "modelNote": "科研图里的轴标 / 图注 / 正文：正文 ≥ 14px、轴标 ≥ 12px、图注 ≥ 11px（投稿再按打印稿下限收：轴标 / 图例 ≥ 7pt、图注 ≥ 6pt）；西文用无衬线字体；标题写结论式（不要「图表 1」）；坐标轴标题必须带量纲 / 单位；同类元素字号与小数位保持一致。公式用 $...$ / $$...$$：只支持有限命令，大括号用 \\big[ \\Big[ \\bigg[（不要指望 \\left / \\right），不支持 \\newcommand，未识别命令会渲染成红色波浪线的 \\名字；要原样显示 $ 时设 props.math:false。中文排版：正文一行 18-26 字，行高 lineHeight 写倍数（正文 1.7-1.8、标题 1.25-1.35），标题层级 ≤ 2，不要两端对齐。需要垂直居中时显式写 style.verticalAlign:\"middle\"（不写默认顶对齐）。",
+      "styleBefore": "行内样式",
+      "sections": [
+        { "title": "文本内容", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.text", "widget": "textarea", "rows": 4, "default": "请输入文字", "desc": "文本内容；可用 $...$ 写行内公式、$$...$$ 写独立公式（LaTeX），如 $E=mc^2$、$\\frac{a}{b}$" },
+            { "path": "style.verticalAlign", "label": "垂直对齐", "widget": "select", "fallback": "top",
+              "options": [["top", "顶部"], ["middle", "垂直居中"], ["bottom", "底部"]] },
+            { "path": "props.math", "label": "解析 LaTeX 公式", "widget": "checkbox", "default": true, "desc": "把 $...$ / $$...$$ 当作 LaTeX 公式渲染；关闭后 $ 原样显示" }
+          ] }
+        ] },
+        { "sep": true, "title": "行内样式", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.runs", "label": "行内富文本", "widget": "runs",
+              "desc": "双击画布上的文字进入编辑，拖选要改的一段，再点加粗 / 斜体 / 下划线 / 变色 / 高亮：只作用于选中的那几个字，整段样式不受影响，效果直接显示在画布上" }
+          ] }
+        ] },
+        { "sep": true, "title": "文字排版", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.letterSpacing", "label": "字距", "widget": "number", "fallback": 0, "min": -5, "max": 40, "step": 0.5,
+              "desc": "字间距（px），负值收紧" },
+            { "path": "style.fontStyle", "label": "字形", "widget": "select", "fallback": "normal",
+              "options": [["normal", "正常"], ["italic", "斜体"]] },
+            { "path": "style.textIndent", "label": "首行缩进", "widget": "number", "fallback": 0, "min": 0, "max": 400,
+              "desc": "每个自然段首行缩进多少像素" },
+            { "path": "style.paragraphSpacing", "label": "段间距", "widget": "number", "fallback": 0, "min": 0, "max": 200,
+              "desc": "换行分段后两段之间的距离（px）" },
+            { "path": "style.padding", "label": "内边距", "widget": "number", "fallback": 0, "min": 0, "max": 200,
+              "desc": "文字与元素边界之间的距离（px）" },
+            { "path": "style.overflow", "label": "溢出", "widget": "select", "fallback": "visible",
+              "options": [["visible", "溢出可见"], ["hidden", "裁掉溢出"], ["auto", "自动滚动"], ["scroll", "总是滚动"]] }
+          ] }
+        ] },
+        { "sep": true, "title": "边框", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderWidth", "label": "边框粗细", "widget": "number", "fallback": 0, "min": 0, "max": 40,
+              "desc": "0 表示不画边框（px）" },
+            { "path": "style.borderStyle", "label": "边框线型", "widget": "select", "fallback": "solid",
+              "options": [["solid", "实线"], ["dashed", "虚线"], ["dotted", "点线"], ["double", "双线"]] },
+            { "path": "style.borderColor", "label": "边框颜色", "widget": "color", "fallback": "#333333" },
+            { "path": "style.borderRadius", "label": "圆角", "widget": "number", "fallback": 0, "min": 0, "max": 200,
+              "desc": "元素四角的圆角半径（px）" }
+          ] }
+        ] }
+      ]
+    },
+    "image": {
+      "label": "图片",
+      "name": "图片",
+      "w": 360,
+      "h": 220,
+      "style": { "borderRadius": 4 },
+      "modelNote": "照片 / 位图用本类型；原理图 / 机制图 / 波形 / 符号一律用 shape / path / connector / chart 画，不要用位图或 emoji 替代（会糊、不可印刷）。props.fit 默认 cover（裁剪填满），不要用 fill——fill 会拉伸变形；要完整显示主体用 contain。科研图能矢量表达就绝不用 image。",
+      "sections": [
+        { "title": "图片", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.src", "label": "素材", "widget": "text", "default": "", "placeholder": "assets/xxx.png", "desc": "图片素材（工程内相对路径）" },
+            { "path": "props.fit", "label": "填充", "widget": "select", "default": "cover", "desc": "填充方式",
+              "options": [["cover", "裁剪填满"], ["contain", "完整显示"], ["fill", "拉伸填满"], ["scale-down", "原始尺寸"]] }
+          ] },
+          { "cols": 2, "fields": [
+            { "path": "props.flipH", "label": "水平翻转", "widget": "checkbox", "default": false },
+            { "path": "props.flipV", "label": "垂直翻转", "widget": "checkbox", "default": false }
+          ] }
+        ] },
+        { "sep": true, "title": "滤镜", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.filter.brightness", "label": "亮度", "widget": "range", "default": 1, "min": 0, "max": 2, "step": 0.05 },
+            { "path": "props.filter.contrast", "label": "对比度", "widget": "range", "default": 1, "min": 0, "max": 2, "step": 0.05 },
+            { "path": "props.filter.saturate", "label": "饱和度", "widget": "range", "default": 1, "min": 0, "max": 2, "step": 0.05 },
+            { "path": "props.filter.grayscale", "label": "灰度", "widget": "range", "default": 0, "min": 0, "max": 1, "step": 0.05 },
+            { "path": "props.filter.blur", "label": "模糊", "widget": "range", "default": 0, "min": 0, "max": 20, "step": 1 }
+          ] }
+        ] },
+        { "sep": true, "title": "裁剪", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.cropTop", "label": "上边裁剪", "widget": "number", "default": 0, "min": 0, "max": 90, "fallback": 0, "desc": "按百分比裁掉，0–90" },
+            { "path": "props.cropBottom", "label": "下边裁剪", "widget": "number", "default": 0, "min": 0, "max": 90, "fallback": 0 },
+            { "path": "props.cropLeft", "label": "左边裁剪", "widget": "number", "default": 0, "min": 0, "max": 90, "fallback": 0 },
+            { "path": "props.cropRight", "label": "右边裁剪", "widget": "number", "default": 0, "min": 0, "max": 90, "fallback": 0 }
+          ] }
+        ] },
+        { "sep": true, "title": "阴影 / 倒影", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.shadowOn", "label": "启用阴影", "widget": "checkbox", "default": false },
+            { "path": "props.shadowColor", "label": "阴影颜色", "widget": "color", "default": "#000000" },
+            { "path": "props.shadowX", "label": "阴影 X 偏移", "widget": "number", "default": 2, "min": -100, "max": 100, "fallback": 2 },
+            { "path": "props.shadowY", "label": "阴影 Y 偏移", "widget": "number", "default": 3, "min": -100, "max": 100, "fallback": 3 },
+            { "path": "props.shadowBlur", "label": "阴影模糊", "widget": "number", "default": 6, "min": 0, "max": 100, "fallback": 6 },
+            { "path": "props.shadowOpacity", "label": "阴影不透明度", "widget": "range", "default": 0.35, "min": 0, "max": 1, "step": 0.05 },
+            { "path": "props.reflectOn", "label": "启用倒影", "widget": "checkbox", "default": false },
+            { "path": "props.reflectOpacity", "label": "倒影不透明度", "widget": "range", "default": 0.35, "min": 0, "max": 1, "step": 0.05 },
+            { "path": "props.reflectSize", "label": "倒影高度占比", "widget": "number", "default": 50, "min": 0, "max": 100, "fallback": 50,
+              "desc": "倒影高度相对图片高度的百分比" },
+            { "path": "props.reflectGap", "label": "倒影间距", "widget": "number", "default": 0, "min": 0, "max": 100, "fallback": 0 }
+          ] }
+        ] },
+        { "sep": true, "title": "边框", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderWidth", "label": "边框粗细", "widget": "number", "fallback": 0, "min": 0, "max": 40, "desc": "0 表示不画边框（px）" },
+            { "path": "style.borderStyle", "label": "边框线型", "widget": "select", "fallback": "solid",
+              "options": [["solid", "实线"], ["dashed", "虚线"], ["dotted", "点线"], ["double", "双线"]] },
+            { "path": "style.borderColor", "label": "边框颜色", "widget": "color", "fallback": "#333333" },
+            { "path": "style.borderRadius", "label": "圆角", "widget": "number", "fallback": 0, "min": 0, "max": 200, "desc": "元素四角的圆角半径（px）" }
+          ] }
+        ] }
+      ]
+    },
+    "video": {
+      "label": "视频",
+      "name": "视频",
+      "w": 420,
+      "h": 240,
+      "style": {},
+      "sections": [
+        { "title": "视频", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.src", "label": "素材", "widget": "text", "default": "", "placeholder": "assets/xxx.mp4", "desc": "视频素材（工程内相对路径）" },
+            { "path": "props.poster", "label": "封面图", "widget": "text", "default": "", "placeholder": "assets/cover.png", "desc": "视频封面图（未播放时显示的画面）" },
+            { "path": "props.fit", "label": "填充", "widget": "select", "default": "fill",
+              "options": [["fill", "拉伸填满"], ["contain", "完整显示"], ["cover", "裁剪填满"]] }
+          ] },
+          { "cols": 1, "fields": [
+            { "widget": "action", "action": "videoPoster", "label": "用当前画面生成封面帧" }
+          ] },
+          { "cols": 2, "fields": [
+            { "path": "props.autoplay", "label": "自动播放", "widget": "checkbox", "default": false },
+            { "path": "props.loop", "label": "循环播放", "widget": "checkbox", "default": false },
+            { "path": "props.muted", "label": "静音", "widget": "checkbox", "default": true },
+            { "path": "props.controls", "label": "显示控制条", "widget": "checkbox", "default": true },
+            { "path": "props.fullscreen", "label": "全屏播放", "widget": "checkbox", "default": false },
+            { "path": "props.hideWhenNotPlaying", "label": "未播放时隐藏", "widget": "checkbox", "default": false }
+          ] }
+        ] },
+        { "sep": true, "title": "剪辑 / 音量", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.startTime", "label": "开始秒数", "widget": "number", "default": 0, "min": 0, "max": 86400, "fallback": 0 },
+            { "path": "props.endTime", "label": "结束秒数", "widget": "number", "default": 0, "min": 0, "max": 86400, "fallback": 0,
+              "desc": "0 表示播到片尾" }
+          ] },
+          { "cols": 1, "fields": [
+            { "path": "props.volume", "label": "音量", "widget": "range", "default": 1, "min": 0, "max": 1, "step": 0.05 }
+          ] }
+        ] },
+        { "sep": true, "title": "放映行为", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.rewind", "label": "播完返回开头", "widget": "checkbox", "default": true },
+            { "path": "props.advanceOnEnd", "label": "播完自动翻页", "widget": "checkbox", "default": false }
+          ] }
+        ] },
+        { "sep": true, "title": "边框", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderWidth", "label": "边框粗细", "widget": "number", "fallback": 0, "min": 0, "max": 40, "desc": "0 表示不画边框（px）" },
+            { "path": "style.borderStyle", "label": "边框线型", "widget": "select", "fallback": "solid",
+              "options": [["solid", "实线"], ["dashed", "虚线"], ["dotted", "点线"], ["double", "双线"]] },
+            { "path": "style.borderColor", "label": "边框颜色", "widget": "color", "fallback": "#333333" },
+            { "path": "style.borderRadius", "label": "圆角", "widget": "number", "fallback": 0, "min": 0, "max": 200, "desc": "元素四角的圆角半径（px）" }
+          ] }
+        ] }
+      ]
+    },
+    "link": {
+      "label": "链接",
+      "name": "链接",
+      "w": 300,
+      "h": 40,
+      "style": { "fontFamily": "Microsoft YaHei", "fontSize": 18, "color": "#2f6fed" },
+      "sections": [
+        { "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.text", "label": "文本", "widget": "text", "default": "链接", "desc": "链接显示文字" },
+            { "path": "props.href", "label": "链接", "widget": "text", "default": "https://", "desc": "跳转地址" }
+          ] }
+        ] },
+        { "sep": true, "title": "边框", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderWidth", "label": "边框粗细", "widget": "number", "fallback": 0, "min": 0, "max": 40, "desc": "0 表示不画边框（px）" },
+            { "path": "style.borderStyle", "label": "边框线型", "widget": "select", "fallback": "solid",
+              "options": [["solid", "实线"], ["dashed", "虚线"], ["dotted", "点线"], ["double", "双线"]] },
+            { "path": "style.borderColor", "label": "边框颜色", "widget": "color", "fallback": "#333333" },
+            { "path": "style.borderRadius", "label": "圆角", "widget": "number", "fallback": 0, "min": 0, "max": 200, "desc": "元素四角的圆角半径（px）" }
+          ] }
+        ] }
+      ]
+    },
+    "table": {
+      "label": "表格",
+      "name": "表格",
+      "w": 520,
+      "h": 200,
+      "style": {},
+      "modelNote": "科研数据用三线表：去掉竖线，只留顶线 / 表头下线 / 底线——把 borderColor 收窄、rowBg 设透明、不要画满格线；表题本类型没有字段，需要就在表格上方另起一个 text。表格默认是不透明白底：放到暗色页会自带一块白底，要和页面同色必须显式设 props.rowBg；文字颜色要按「衬底」定反差，暗底页必须同时给 headerBg / headerColor / rowBg / borderColor 四个值，否则默认深字压深底看不清。",
+      "sections": [
+        { "title": "数据", "rows": [
+          { "cols": 1, "fields": [
+            { "hint": "每行一条记录，单元格用 Tab 或逗号分隔；需要合并的单元格留空即可（再用下面的「合并单元格」精确指定）。" },
+            { "path": "props.rows", "widget": "rows", "rowsKind": "table", "default": [["列 1", "列 2"], ["内容", "内容"]], "desc": "二维数组数据，每行一条记录" }
+          ] }
+        ] },
+        { "sep": true, "title": "表头", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.header", "label": "首行表头", "widget": "checkbox", "default": true },
+            { "path": "props.headerBold", "label": "表头加粗", "widget": "checkbox", "default": true },
+            { "path": "props.headerAlign", "label": "表头对齐", "widget": "select",
+              "options": [["left", "左"], ["center", "中"], ["right", "右"]] },
+            { "path": "props.headerBg", "label": "表头底色", "widget": "color", "default": "#f2f4f7" },
+            { "path": "props.headerColor", "label": "表头文字色", "widget": "color", "default": "#1f2328" },
+            { "path": "props.headerFontSize", "label": "表头字号", "widget": "number", "default": 13, "min": 8, "max": 40, "fallback": 13 }
+          ] }
+        ] },
+        { "sep": true, "title": "版式", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.align", "label": "单元格对齐", "widget": "select", "default": "left",
+              "options": [["left", "左"], ["center", "中"], ["right", "右"]] },
+            { "path": "props.verticalAlign", "label": "垂直对齐", "widget": "select", "default": "middle",
+              "options": [["top", "顶"], ["middle", "居中"], ["bottom", "底"]] },
+            { "path": "props.density", "label": "行高密度", "widget": "select", "default": "normal",
+              "options": [["compact", "紧凑"], ["normal", "正常"], ["loose", "宽松"]] },
+            { "path": "props.firstColBold", "label": "首列加粗", "widget": "checkbox", "default": false },
+            { "path": "props.cellPadding", "label": "内边距", "widget": "number", "default": 6, "min": 0, "max": 40, "fallback": 6 },
+            { "path": "props.fontSize", "label": "字号", "widget": "number", "default": 13, "min": 8, "max": 40, "fallback": 13 }
+          ] },
+          { "cols": 1, "fields": [
+            { "path": "props.aligns", "label": "逐列对齐", "widget": "strList", "default": [], "placeholder": "left,right,center", "desc": "按列覆盖对齐，逗号分隔；空位继承「单元格对齐」" },
+            { "path": "props.columnWidths", "label": "列宽(%)", "widget": "numList", "default": [], "placeholder": "30,20,50", "desc": "按列宽百分比，逗号分隔；填了则按比例固定列宽" }
+          ] }
+        ] },
+        { "sep": true, "title": "配色", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.zebra", "label": "斑马纹", "widget": "checkbox", "default": false },
+            { "path": "props.borders", "label": "显示边框", "widget": "checkbox", "default": true },
+            { "path": "props.rowBg", "label": "行底色", "widget": "color", "default": "#ffffff" },
+            { "path": "props.altBg", "label": "条纹色", "widget": "color", "default": "#f7f9fc" },
+            { "path": "props.borderColor", "label": "边框色", "widget": "color", "default": "#d0d5dd" },
+            { "path": "props.borderWidth", "label": "边框粗细", "widget": "number", "default": 1, "min": 0, "max": 8, "fallback": 1 },
+            { "path": "props.radius", "label": "圆角", "widget": "number", "default": 0, "min": 0, "max": 40, "fallback": 0 },
+            { "path": "props.shadow", "label": "投影", "widget": "checkbox", "default": false }
+          ] }
+        ] },
+        { "sep": true, "title": "标注", "rows": [
+          { "cols": 1, "fields": [
+            { "hint": "单元格高亮：每行一条「行,列,颜色」，行/列从 0 开始（第 1 行是 0）；列写 * 表示整行。" },
+            { "path": "props.highlights", "widget": "lines", "lineKind": "highlight", "default": [], "placeholder": "2,1,#ffe8a3", "desc": "单元格底色标注，[[行,列,色]]，列可为 *" },
+            { "hint": "合并单元格：每行一条「起始行,起始列,跨行数,跨列数」，行列从 0 开始。" },
+            { "path": "props.merges", "widget": "lines", "lineKind": "merge", "default": [], "placeholder": "2,1,2,1", "desc": "合并单元格，[[起始行,起始列,跨行,跨列]]" }
+          ] }
+        ] },
+        { "sep": true, "title": "边框", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderWidth", "label": "外框粗细", "widget": "number", "fallback": 0, "min": 0, "max": 40,
+              "desc": "整个表格外面的边框，与上面「边框粗细」（单元格网格线）无关；0 表示不画（px）" },
+            { "path": "style.borderStyle", "label": "外框线型", "widget": "select", "fallback": "solid",
+              "options": [["solid", "实线"], ["dashed", "虚线"], ["dotted", "点线"], ["double", "双线"]] },
+            { "path": "style.borderColor", "label": "外框颜色", "widget": "color", "fallback": "#333333" },
+            { "path": "style.borderRadius", "label": "圆角", "widget": "number", "fallback": 0, "min": 0, "max": 200, "desc": "元素四角的圆角半径（px）" }
+          ] }
+        ] }
+      ]
+    },
+    "code": {
+      "label": "代码块",
+      "name": "代码块",
+      "w": 520,
+      "h": 220,
+      "style": { "borderRadius": 6 },
+      "modelNote": "代码块默认深色主题；放到浅色页时要显式把 props.theme 设为 light（auto 跟随编辑器，导出结果不一定合页面）。每段代码必须显式给 props.lang（不给高亮不对），并在旁边用 text 说明这段代码做什么。要强调几行用 props.highlightLines，如 \"3,5-7\"。本类型没有「复制按钮」这类交互，静态导出只有标题栏；行数多时调小 props.fontSize 或只留关键片段。",
+      "sections": [
+        { "title": "代码", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.code", "widget": "textarea", "rows": 8, "mono": true, "default": "print(\"hello\")", "desc": "代码内容" },
+            { "path": "props.lang", "label": "语言", "widget": "select", "default": "python", "desc": "代码语言，决定语法高亮的着色规则",
+              "options": ["python", "javascript", "typescript", "java", "kotlin", "c", "cpp", "csharp", "go", "rust", "php", "ruby", "swift", "sql", "html", "css", "json", "yaml", "markdown", "bash", "diff", "ini", "dockerfile", "makefile", "text"] },
+            { "path": "props.title", "label": "标题栏文字", "widget": "text", "default": "", "placeholder": "如 demo.py；留空显示语言名", "desc": "代码块顶部标题栏显示的文字" }
+          ] }
+        ] },
+        { "sep": true, "title": "外观", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.theme", "label": "主题", "widget": "select", "default": "dark", "desc": "着色主题：深色 / 浅色 / 跟随编辑器（自动）",
+              "options": [["dark", "深色"], ["light", "浅色"], ["auto", "跟随编辑器"]] },
+            { "path": "props.langLabel", "label": "语言标签", "widget": "text", "default": "", "placeholder": "留空自动取语言名", "desc": "右上角语言徽标文字" },
+            { "path": "props.showBar", "label": "显示标题栏", "widget": "checkbox", "default": true },
+            { "path": "props.macStyle", "label": "三色圆点", "widget": "checkbox", "default": true, "desc": "标题栏左侧的 macOS 三色圆点" },
+            { "path": "props.lineNumbers", "label": "行号", "widget": "checkbox", "default": true },
+            { "path": "props.wrap", "label": "自动换行", "widget": "checkbox", "default": false },
+            { "path": "props.shadow", "label": "投影", "widget": "checkbox", "default": true },
+            { "path": "props.startLine", "label": "起始行号", "widget": "number", "default": 1, "min": 0, "max": 9999, "fallback": 1 },
+            { "path": "props.tabSize", "label": "Tab 宽", "widget": "number", "default": 4, "min": 1, "max": 12, "fallback": 4 },
+            { "path": "props.fontSize", "label": "字号", "widget": "number", "default": 13, "min": 8, "max": 40, "fallback": 13 },
+            { "path": "props.lineHeight", "label": "行高倍数", "widget": "number", "default": 1.55, "min": 1, "max": 3, "step": 0.05, "fallback": 1.55 },
+            { "path": "props.padding", "label": "内边距", "widget": "number", "default": 10, "min": 0, "max": 40, "fallback": 10 },
+            { "path": "props.radius", "label": "圆角", "widget": "number", "default": 8, "min": 0, "max": 40, "fallback": 8 },
+            { "path": "props.bgColor", "label": "背景色", "widget": "color", "fallback": "#0d1117", "desc": "留空用主题默认背景" },
+            { "path": "props.fgColor", "label": "文字色", "widget": "color", "fallback": "#c9d1d9", "desc": "留空用主题默认文字色" },
+            { "path": "props.accent", "label": "强调色", "widget": "color", "fallback": "#58a6ff", "desc": "行号槽与高亮行左侧竖条的颜色" }
+          ] },
+          { "cols": 1, "fields": [
+            { "path": "props.highlightLines", "label": "高亮行", "widget": "text", "default": "", "placeholder": "如 3,5-7", "desc": "需要强调的行号，逗号分隔、连字符表示区间" }
+          ] }
+        ] },
+        { "sep": true, "title": "边框", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderWidth", "label": "外框粗细", "widget": "number", "fallback": 0, "min": 0, "max": 40,
+              "desc": "代码块外面的边框；0 表示不画（px）" },
+            { "path": "style.borderStyle", "label": "外框线型", "widget": "select", "fallback": "solid",
+              "options": [["solid", "实线"], ["dashed", "虚线"], ["dotted", "点线"], ["double", "双线"]] },
+            { "path": "style.borderColor", "label": "外框颜色", "widget": "color", "fallback": "#333333" },
+            { "path": "style.borderRadius", "label": "圆角", "widget": "number", "fallback": 0, "min": 0, "max": 200, "desc": "元素四角的圆角半径（px）" }
+          ] }
+        ] }
+      ]
+    },
+    "chart": {
+      "label": "统计图",
+      "name": "统计图",
+      "w": 520,
+      "h": 300,
+      "style": {},
+      "_commonStyleSkipNote": "图表只认自己的 props 字号 / 颜色（见 render-kit 的 chartSvg），通用样式里的字体 / 字号 / 颜色 / 行高 / 对齐 / 字重对它不起作用，面板上索性藏掉，免得改了没反应。这里的边框与背景仍然生效（那是元素外框，不是图表内容）。",
+      "commonStyleSkip": ["style.fontFamily", "style.fontSize", "style.color", "style.lineHeight", "style.textAlign", "style.fontWeight"],
+      "modelNote": "画科研 / 数据图一律用它，别用 shape/path 拼。选型：比较→bar/hbar；趋势→line/area；构成随时间→stackedArea；占比→pie/donut；层级→rose；多指标→radar/heatmap；相关→scatter；三变量→bubble；转化→funnel；完成度→gauge/progress；分布→box/violin/hist/ecdf；均值±不确定性→errorbar。数据读法：常规图每行一条、首列类别其余列系列；统计图形（box/violin/hist/ecdf/errorbar/heatmap）首列是分组名、其余数值单元格为该组样本，长表与宽表等价；散点 / 气泡首列是数值 x（气泡再一列尺寸，首列全文字则跳过）。误差棒 errorType 取 none/sd/sem/ci95（散布用 sd、均值不确定性用 sem、投稿优先 ci95）；显著性写 compare，如 \"A-B, A-C:0.008, B-C:**\"，不显著写 n.s.，多组两两比较加 sigCorrect:\"holm\"（hbar 不支持显著性括号，别给它配 compare）；拟合 fitType 取 none/linear/quad/cubic/exp，方程与 R² 默认已自动标注、不要重复手写进 title。轴标题写 xTitle/yTitle 且必须带量纲 / 单位；普通柱 / 条形图纵轴从 0 起，统计图形默认按数据范围取刻度（要 0 基准写 zeroBase）；直方 / ECDF 用 axisBox:true。配色默认 palettePreset:\"nature\"、色盲友好 \"okabe\"、黑白印刷出 \"grey\" 版，一张图最多 3 个语义色 + 中性色、对比 ≥ 4.5:1，暗底页把 titleColor/labelColor/valueColor/gridColor/axisColor 一并改浅。下限：标题 titleSize ≥ 14（投稿 ≥ 8pt）、轴标 / 图例 fontSize ≥ 11（投稿 ≥ 7pt）、数据线 lineWidth ≥ 1；同类元素字号一致、数值用 valueFormat 统一小数位与单位。",
+      "sections": [
+        { "title": "数据", "rows": [
+          { "cols": 1, "fields": [
+            { "hint": "常规图形：每行一条数据，第一列是类别，后面每列是一个系列（如「一月, 线上, 线下」）。统计图形（箱线/小提琴/直方/累积/误差棒）：第一列是分组名（同名会自动合并成一组），该行其余数值单元格都算作这组的样本，如「A, 3.1」「A, 3.5」「B, 4.2」；也可写成宽表「A, 1, 2, 3」。散点 / 气泡：第一列是数值 x，其后是 y，气泡再下一列是尺寸（如「12, 46, 32」）；若第一列是文字分组（如「A, 12, 46, 32」）会自动跳过该列。x / y 不是数值的行（如表头行）会自动忽略。" },
+            { "path": "props.rows", "widget": "rows", "rowsKind": "chart", "default": [["一月", 30], ["二月", 55], ["三月", 42], ["四月", 68]], "desc": "数据行：[[\"类别/分组\", 数值, 数值…], ...]，多列即为多系列（统计图形下为多样本）" },
+            { "path": "props.seriesNames", "label": "系列名", "widget": "text", "default": "", "placeholder": "线上,线下", "desc": "逗号分隔，覆盖表头推断出的系列名" },
+            { "path": "props.palette", "label": "配色", "widget": "colorList", "default": ["#2f6fed", "#f2a33c", "#34b98a", "#e46a76", "#8a7cf0"], "placeholder": "#2f6fed,#f2a33c", "desc": "配色数组（逗号分隔色值）" }
+          ] }
+        ] },
+        { "sep": true, "title": "图形", "rows": [
+          { "cols": 3, "fields": [
+            { "path": "props.kind", "label": "类型", "widget": "select", "default": "bar", "desc": "图表类型",
+              "options": [["bar", "柱状"], ["hbar", "条形（横向）"], ["line", "折线"], ["area", "面积"], ["stackedArea", "堆叠面积"], ["pie", "饼图"], ["donut", "环形"], ["rose", "南丁格尔玫瑰"], ["radar", "雷达"], ["scatter", "散点"], ["bubble", "气泡"], ["funnel", "漏斗"], ["gauge", "仪表盘"], ["progress", "进度条"], ["box", "箱线图"], ["violin", "小提琴图"], ["hist", "直方图"], ["ecdf", "累积分布"], ["heatmap", "热力图"], ["errorbar", "误差棒"]] },
+            { "path": "props.stacked", "label": "堆叠", "widget": "checkbox", "default": false, "desc": "柱状 / 条形 / 面积是否堆叠" },
+            { "path": "props.grouped", "label": "分组", "widget": "checkbox", "default": false, "desc": "柱状 / 条形多系列时并排显示" }
+          ] },
+          { "cols": 2, "fields": [
+            { "path": "props.rose", "label": "玫瑰扇区等角", "widget": "checkbox", "default": false, "desc": "南丁格尔玫瑰：等角不等半径" },
+            { "path": "props.colorByCategory", "label": "逐类配色", "widget": "checkbox", "default": false, "desc": "柱/条形按类别取色而非按系列" },
+            { "path": "props.innerRadius", "label": "环内径比例", "widget": "number", "default": 0.55, "min": 0, "max": 0.92, "step": 0.05, "fallback": 0.55 },
+            { "path": "props.startAngle", "label": "起始角度", "widget": "number", "default": -90, "min": -360, "max": 360, "fallback": -90 },
+            { "path": "props.centerText", "label": "环心文字", "widget": "text", "default": "", "placeholder": "环形图中心文字" },
+            { "path": "props.pieLabel", "label": "扇区标注", "widget": "select", "default": "percent",
+              "options": [["percent", "百分比"], ["value", "数值"], ["label", "类别名"], ["none", "不显示"]] },
+            { "path": "props.radarFill", "label": "雷达填充", "widget": "checkbox", "default": true },
+            { "path": "props.funnelGap", "label": "漏斗间距", "widget": "number", "default": 4, "min": 0, "max": 40, "fallback": 4 }
+          ] }
+        ] },
+        { "sep": true, "title": "统计图形（箱线 / 小提琴 / 直方 / 累积 / 误差棒 / 热力）", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.palettePreset", "label": "配色方案", "widget": "select", "default": "", "desc": "出版物级配色预设，选中后覆盖上面的自定义配色",
+              "options": [["", "自定义"], ["okabe", "色盲友好（Okabe-Ito）"], ["nature", "期刊低饱和"], ["grey", "灰阶"]] },
+            { "path": "props.heatColors", "label": "热力色阶", "widget": "select", "default": "viridis", "desc": "仅热力图有效",
+              "options": [["viridis", "viridis"], ["blue", "蓝"], ["red", "红"], ["green", "绿"], ["grey", "灰阶"], ["diverging", "双向发散（以 0 为中心）"]] },
+            { "path": "props.zeroBase", "label": "纵轴从 0 起", "widget": "checkbox", "default": false, "desc": "箱线/小提琴等默认按数据范围取刻度；勾选后把 0 纳入纵轴范围" },
+            { "path": "props.axisBox", "label": "封闭坐标框", "widget": "checkbox", "default": false, "desc": "直方图 / 累积分布：四周封闭边框（论文常规样式）" },
+            { "path": "props.bins", "label": "直方分箱数", "widget": "number", "default": 0, "min": 0, "max": 40, "fallback": 0, "desc": "0 表示按 Sturges 规则自动" },
+            { "path": "props.density", "label": "直方用密度", "widget": "checkbox", "default": false, "desc": "纵轴显示概率密度而非计数" },
+            { "path": "props.kdeCurve", "label": "叠加核密度曲线", "widget": "checkbox", "default": true, "desc": "直方图上叠加高斯核密度曲线" },
+            { "path": "props.boxWidth", "label": "箱体宽度", "widget": "range", "default": 0.5, "min": 0.08, "max": 1, "step": 0.02, "fallback": 0.5 },
+            { "path": "props.showMean", "label": "箱线显示均值", "widget": "checkbox", "default": false },
+            { "path": "props.showOutliers", "label": "箱线显示离群点", "widget": "checkbox", "default": true }
+          ] }
+        ] },
+        { "sep": true, "title": "统计层（由重复样本自动计算）", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.errorType", "label": "误差棒", "widget": "select", "default": "none", "desc": "按分组由重复样本自动算 均值 ± 误差；柱/条/折线/面积/箱线/小提琴/误差棒有效（误差棒图需有重复样本才重算）",
+              "options": [["none", "不显示"], ["sd", "标准差 SD"], ["sem", "标准误 SEM"], ["ci95", "95% 置信区间"]] },
+            { "path": "props.compare", "label": "显著性对比", "widget": "text", "default": "", "placeholder": "A-B, A-C:0.008, B-C:**", "desc": "逗号分隔的分组对：「A-B」自动跑 Welch t 检验；「A-B:0.008」手填 p；「A-B:***」手填星号。需分组名与数据第一列一致" },
+            { "path": "props.sigCorrect", "label": "多重比较校正", "widget": "select", "default": "none", "desc": "对自动算出的 p 值做校正（手填值不参与）",
+              "options": [["none", "不校正"], ["holm", "Holm–Bonferroni"]] },
+            { "path": "props.fitType", "label": "拟合线", "widget": "select", "default": "none", "desc": "散点 / 气泡 / 折线 / 面积有效；散点按数值 x 拟合，折线按类目序号拟合",
+              "options": [["none", "不显示"], ["linear", "线性"], ["quad", "二次多项式"], ["cubic", "三次多项式"], ["exp", "指数"]] },
+            { "path": "props.fitShowEq", "label": "显示方程", "widget": "checkbox", "default": true },
+            { "path": "props.fitShowR2", "label": "显示 R²", "widget": "checkbox", "default": true },
+            { "path": "props.fitWidth", "label": "拟合线宽", "widget": "number", "default": 2, "min": 0.5, "max": 12, "step": 0.5, "fallback": 2 },
+            { "path": "props.fitColor", "label": "拟合线颜色", "widget": "color", "default": "#7b8794" },
+            { "path": "props.sigColor", "label": "显著性颜色", "widget": "color", "default": "#475467" }
+          ] }
+        ] },
+        { "sep": true, "title": "坐标轴", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.xTitle", "label": "X 轴标题", "widget": "text", "default": "", "placeholder": "可留空" },
+            { "path": "props.yTitle", "label": "Y 轴标题", "widget": "text", "default": "", "placeholder": "可留空" },
+            { "path": "props.showGrid", "label": "网格线", "widget": "checkbox", "default": true },
+            { "path": "props.showAxis", "label": "坐标轴线", "widget": "checkbox", "default": true },
+            { "path": "props.gridCount", "label": "刻度段数", "widget": "number", "default": 4, "min": 1, "max": 12, "fallback": 4 },
+            { "path": "props.maxValue", "label": "纵轴最大值", "widget": "number", "default": 0, "min": 0, "max": 1000000, "fallback": 0, "desc": "0 表示按数据自动计算" },
+            { "path": "props.minValue", "label": "纵轴最小值", "widget": "number", "default": 0, "min": -1000000, "max": 1000000, "fallback": 0 }
+          ] }
+        ] },
+        { "sep": true, "title": "样式", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.title", "label": "标题", "widget": "text", "default": "", "placeholder": "可留空", "desc": "图表标题" },
+            { "path": "props.titleAlign", "label": "标题对齐", "widget": "select", "fallback": "center",
+              "options": [["left", "左"], ["center", "中"], ["right", "右"]] },
+            { "path": "props.titleSize", "label": "标题字号", "widget": "number", "default": 17, "min": 8, "max": 80, "fallback": 17 },
+            { "path": "props.titleColor", "label": "标题颜色", "widget": "color", "default": "#1f2328" },
+            { "path": "props.fontSize", "label": "标签字号", "widget": "number", "default": 12, "min": 6, "max": 48, "fallback": 12 },
+            { "path": "props.labelColor", "label": "标签颜色", "widget": "color", "default": "#667085" },
+            { "path": "props.valueColor", "label": "数值颜色", "widget": "color", "default": "#475467" },
+            { "path": "props.gridColor", "label": "网格颜色", "widget": "color", "default": "#e6e9ee" },
+            { "path": "props.axisColor", "label": "轴线颜色", "widget": "color", "default": "#d0d5dd" },
+            { "path": "props.barRadius", "label": "柱圆角", "widget": "number", "default": 2, "min": 0, "max": 40, "fallback": 2 },
+            { "path": "props.barGap", "label": "柱间距", "widget": "number", "default": 0.34, "min": 0, "max": 0.9, "step": 0.02, "fallback": 0.34 },
+            { "path": "props.lineWidth", "label": "线宽", "widget": "number", "default": 2.5, "min": 0.5, "max": 20, "step": 0.5, "fallback": 2.5 },
+            { "path": "props.showPoints", "label": "折线数据点", "widget": "checkbox", "default": true },
+            { "path": "props.smooth", "label": "平滑曲线", "widget": "checkbox", "default": false },
+            { "path": "props.areaOpacity", "label": "面积不透明度", "widget": "number", "default": 0.22, "min": 0.02, "max": 1, "step": 0.02, "fallback": 0.22 }
+          ] }
+        ] },
+        { "sep": true, "title": "数值与图例", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.showValues", "label": "显示数值", "widget": "checkbox", "default": true },
+            { "path": "props.showLegend", "label": "显示图例", "widget": "checkbox", "default": true },
+            { "path": "props.valueFormat", "label": "数值格式", "widget": "select", "fallback": "auto",
+              "options": [["auto", "自动"], ["thousand", "千分位"], ["percent", "百分比"], ["fixed1", "一位小数"], ["fixed2", "两位小数"], ["compact", "万/亿缩写"], ["none", "原样"]] },
+            { "path": "props.legendPos", "label": "图例位置", "widget": "select", "fallback": "auto",
+              "options": [["auto", "自动"], ["top", "顶部"], ["bottom", "底部"], ["left", "左侧"], ["right", "右侧"]] }
+          ] }
+        ] },
+        { "sep": true, "title": "仪表盘 / 进度条", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.value", "label": "当前值", "widget": "number", "default": 72, "min": -1000000, "max": 1000000, "fallback": 0, "desc": "仪表盘 / 进度条的取值（进度条 0~1 或百分数）" },
+            { "path": "props.unit", "label": "单位", "widget": "text", "default": "", "placeholder": "%" },
+            { "path": "props.gaugeMin", "label": "量程下限", "widget": "number", "default": 0, "min": -1000000, "max": 1000000, "fallback": 0 },
+            { "path": "props.gaugeMax", "label": "量程上限", "widget": "number", "default": 100, "min": -1000000, "max": 1000000, "fallback": 100 },
+            { "path": "props.gaugeTicks", "label": "表盘刻度数", "widget": "number", "default": 5, "min": 2, "max": 20, "fallback": 5 }
+          ] }
+        ] },
+        { "sep": true, "title": "边框", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderWidth", "label": "外框粗细", "widget": "number", "fallback": 0, "min": 0, "max": 40,
+              "desc": "统计图外面的边框；0 表示不画（px）" },
+            { "path": "style.borderStyle", "label": "外框线型", "widget": "select", "fallback": "solid",
+              "options": [["solid", "实线"], ["dashed", "虚线"], ["dotted", "点线"], ["double", "双线"]] },
+            { "path": "style.borderColor", "label": "外框颜色", "widget": "color", "fallback": "#333333" },
+            { "path": "style.borderRadius", "label": "圆角", "widget": "number", "fallback": 0, "min": 0, "max": 200, "desc": "元素四角的圆角半径（px）" }
+          ] }
+        ] }
+      ]
+    },
+    "shape": {
+      "label": "形状",
+      "name": "形状",
+      "w": 220,
+      "h": 140,
+      "style": { "background": "#dbe7ff", "borderWidth": 0, "borderColor": "#2f6fed", "borderStyle": "solid", "borderRadius": 0 },
+      "modelNote": "示意图节点用 shape、文字用同坐标独立 text（shape 不装文字，图文分离）；节点 1px 描边、尽量对齐栅格、连线只走正交；填充写 style.background（写 fill 无效）；默认无边框，要框线必须显式写 borderWidth(+borderColor)；每图节点数 ≤ 12、连线数 ≤ 节点数 × 1.5。",
+      "sections": [
+        { "title": "形状", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.shape", "label": "形状", "widget": "select", "default": "rect",
+              "desc": "86 个预设图形，命名与 PowerPoint（OOXML preset geometry）一一对应，导出 PPTX 即为原生形状",
+              "options": [
+                ["rect", "矩形"], ["roundRect", "圆角矩形"], ["round1Rect", "单圆角矩形"], ["round2SameRect", "同侧双圆角矩形"],
+                ["round2DiagRect", "对角双圆角矩形"], ["snip1Rect", "单切角矩形"], ["snip2SameRect", "同侧双切角矩形"],
+                ["snip2DiagRect", "对角双切角矩形"], ["snipRoundRect", "切角圆角矩形"],
+                ["ellipse", "椭圆"], ["triangle", "等腰三角形"], ["rtTriangle", "直角三角形"], ["diamond", "菱形"],
+                ["parallelogram", "平行四边形"], ["trapezoid", "梯形"], ["nonIsoscelesTrapezoid", "不等腰梯形"],
+                ["pentagon", "五边形"], ["hexagon", "六边形"], ["heptagon", "七边形"], ["octagon", "八边形"],
+                ["decagon", "十边形"], ["dodecagon", "十二边形"], ["plaque", "铭牌"], ["can", "圆柱"], ["cube", "立方体"],
+                ["bevel", "斜切"], ["donut", "圆环"], ["blockArc", "环形块"], ["pie", "饼形"], ["pieWedge", "饼形楔"],
+                ["chord", "弓形"], ["teardrop", "泪滴"], ["frame", "画框"], ["halfFrame", "半画框"], ["corner", "角形"],
+                ["diagStripe", "斜条纹"], ["moon", "月牙"], ["sun", "太阳"], ["cloud", "云"], ["heart", "心形"],
+                ["lightningBolt", "闪电"], ["smileyFace", "笑脸"], ["noSmoking", "禁止标志"], ["arc", "弧形"],
+                ["star4", "四角星"], ["star5", "五角星"], ["star6", "六角星"], ["star7", "七角星"], ["star8", "八角星"],
+                ["star10", "十角星"], ["star12", "十二角星"], ["star16", "十六角星"], ["star24", "二十四角星"], ["star32", "三十二角星"],
+                ["rightArrow", "右箭头"], ["leftArrow", "左箭头"], ["upArrow", "上箭头"], ["downArrow", "下箭头"],
+                ["leftRightArrow", "左右箭头"], ["upDownArrow", "上下箭头"], ["quadArrow", "四向箭头"],
+                ["leftRightUpArrow", "左右上箭头"], ["bentArrow", "折弯箭头"], ["uturnArrow", "回转箭头"],
+                ["leftUpArrow", "左上箭头"], ["notchedRightArrow", "燕尾右箭头"], ["chevron", "箭头条"], ["homePlate", "五边形箭头"],
+                ["flowChartProcess", "流程-处理"], ["flowChartDecision", "流程-判断"], ["flowChartTerminator", "流程-起止"],
+                ["flowChartDocument", "流程-文档"], ["flowChartPredefinedProcess", "流程-预定义"],
+                ["flowChartInternalStorage", "流程-内存储"], ["flowChartConnector", "流程-连接符"],
+                ["flowChartSort", "流程-排序"], ["flowChartExtract", "流程-提取"], ["flowChartMerge", "流程-合并"],
+                ["flowChartMagneticDisk", "流程-磁盘"], ["flowChartOffpageConnector", "流程-离页"],
+                ["wedgeRectCallout", "矩形标注"], ["cloudCallout", "云形标注"],
+                ["cross", "十字"], ["mathPlus", "加号"], ["flag", "旗帜"], ["line", "直线"]
+              ] }
+          ] },
+          { "cols": 1, "fields": [
+            { "widget": "action", "action": "shapeToPath", "label": "转为可编辑路径…" },
+            { "hint": "转成「路径」元素后可以拖动每个节点和控制柄，改出任意轮廓；路径面板里的「转回形状」可以随时还原成原形状。" }
+          ] }
+        ] },
+        { "sep": true, "title": "填充", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.background", "label": "填充色", "widget": "color", "default": "#dbe7ff" },
+            { "path": "props.fillType", "label": "填充类型", "widget": "select", "default": "solid",
+              "options": [["solid", "纯色"], ["gradient", "渐变"], ["image", "图片"], ["none", "无填充"]] },
+            { "path": "props.fillGradientTo", "label": "渐变终止色", "widget": "color", "default": "#ffffff",
+              "desc": "仅填充类型为渐变时生效" },
+            { "path": "props.fillImage", "label": "填充图片", "widget": "asset", "default": "", "placeholder": "assets/xxx.png",
+              "desc": "图片填充素材（工程内相对路径），可点「浏览…」从磁盘选；填充类型选「图片」时生效。图片拉伸铺满图形外框、再按轮廓裁剪，与 PowerPoint 的图片填充（拉伸）一致" },
+            { "path": "props.fillGradientAngle", "label": "渐变角度", "widget": "number", "default": 90, "min": -360, "max": 360, "fallback": 90,
+              "desc": "0=从左到右，90=从上到下（度）" },
+            { "path": "props.fillOpacity", "label": "填充不透明度", "widget": "range", "default": 1, "min": 0, "max": 1, "step": 0.05 }
+          ] }
+        ] },
+        { "sep": true, "title": "描边", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderColor", "label": "描边色", "widget": "color", "default": "#2f6fed" },
+            { "path": "style.borderWidth", "label": "描边", "widget": "stroke", "default": 0, "min": 0, "max": 40, "fallback": 1,
+              "desc": "「无边框」= 不描边（相当于宽度 0）。无边框的图形照样导出成 PPT 原生矢量，不会被转成图片" },
+            { "path": "props.strokeDash", "label": "线型", "widget": "select", "default": "solid",
+              "options": [["solid", "实线"], ["dash", "虚线"], ["longDash", "长虚线"], ["dot", "点线"], ["dashDot", "点划线"], ["roundDot", "圆点线"]] },
+            { "path": "props.strokeCap", "label": "线端", "widget": "select", "default": "butt",
+              "options": [["butt", "平头"], ["round", "圆头"], ["square", "方头"]] },
+            { "path": "props.strokeJoin", "label": "拐角", "widget": "select", "default": "miter",
+              "options": [["miter", "尖角"], ["round", "圆角"], ["bevel", "斜切"]] }
+          ] }
+        ] },
+        { "sep": true, "title": "圆角 / 变换", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderRadius", "label": "统一圆角", "widget": "number", "default": 0, "min": 0, "max": 200, "fallback": 0,
+              "desc": "0 = 跟随形状自带比例（圆角矩形按短边圆角、矩形为直角）；大于 0 时统一覆盖四角" },
+            { "path": "props.radiusTL", "label": "左上圆角", "widget": "number", "min": 0, "max": 200, "fallback": "",
+              "desc": "留空则跟随统一圆角；仅矩形类形状生效" },
+            { "path": "props.radiusTR", "label": "右上圆角", "widget": "number", "min": 0, "max": 200, "fallback": "" },
+            { "path": "props.radiusBR", "label": "右下圆角", "widget": "number", "min": 0, "max": 200, "fallback": "" },
+            { "path": "props.radiusBL", "label": "左下圆角", "widget": "number", "min": 0, "max": 200, "fallback": "" },
+            { "path": "props.flipH", "label": "水平翻转", "widget": "checkbox", "default": false },
+            { "path": "props.flipV", "label": "垂直翻转", "widget": "checkbox", "default": false }
+          ] }
+        ] },
+        { "sep": true, "title": "阴影 / 发光 / 倒影", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.shadowOn", "label": "启用阴影", "widget": "checkbox", "default": false },
+            { "path": "props.shadowColor", "label": "阴影颜色", "widget": "color", "default": "#000000" },
+            { "path": "props.shadowX", "label": "阴影 X 偏移", "widget": "number", "default": 2, "min": -100, "max": 100, "fallback": 2 },
+            { "path": "props.shadowY", "label": "阴影 Y 偏移", "widget": "number", "default": 3, "min": -100, "max": 100, "fallback": 3 },
+            { "path": "props.shadowBlur", "label": "阴影模糊", "widget": "number", "default": 6, "min": 0, "max": 100, "fallback": 6 },
+            { "path": "props.shadowOpacity", "label": "阴影不透明度", "widget": "range", "default": 0.35, "min": 0, "max": 1, "step": 0.05 },
+            { "path": "props.glowOn", "label": "启用发光", "widget": "checkbox", "default": false },
+            { "path": "props.glowColor", "label": "发光颜色", "widget": "color", "default": "#2f6fed" },
+            { "path": "props.glowSize", "label": "发光大小", "widget": "number", "default": 8, "min": 0, "max": 100, "fallback": 8 },
+            { "path": "props.reflectOn", "label": "启用倒影", "widget": "checkbox", "default": false },
+            { "path": "props.reflectOpacity", "label": "倒影不透明度", "widget": "range", "default": 0.35, "min": 0, "max": 1, "step": 0.05 },
+            { "path": "props.reflectSize", "label": "倒影高度占比", "widget": "number", "default": 50, "min": 0, "max": 100, "fallback": 50,
+              "desc": "倒影高度相对形状高度的百分比" },
+            { "path": "props.reflectGap", "label": "倒影间距", "widget": "number", "default": 0, "min": 0, "max": 100, "fallback": 0 }
+          ] }
+        ] }
+      ]
+    },
+    "path": {
+      "label": "路径",
+      "name": "路径",
+      "w": 220,
+      "h": 140,
+      "style": { "background": "#dbe7ff", "borderWidth": 0, "borderColor": "#2f6fed", "borderStyle": "solid", "borderRadius": 0 },
+      "desc": "任意矢量轮廓：可直接粘贴 SVG path 数据，也可由形状轮廓或函数曲线生成；选中后在画布上拖节点与控制柄自由改形，双击线段加点、Delete 删点",
+      "modelNote": "任意轮廓 / 机制图轮廓 / 波形用 path 自写 d（坐标是元素局部 0..w / 0..h）；曲线用多段 C 拟合，避开弧线命令 A/a（PPTX 会回退成截图、丢可编辑性）；默认无边框，线稿必须显式写 borderWidth > 0 才可见；不要用一堆散点去凑曲线。",
+      "sections": [
+        { "title": "路径", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.d", "label": "path 数据", "widget": "textarea", "rows": 4, "mono": true, "default": "M110 6C158 6 214 28 214 70C214 112 158 134 110 134C62 134 6 112 6 70C6 28 62 6 110 6Z",
+              "desc": "SVG path 数据（M/L/C/Q/A/Z 都认），坐标是元素局部 0..w / 0..h" },
+            { "path": "props.fillRule", "label": "填充规则", "widget": "select", "default": "nonzero",
+              "options": [["nonzero", "nonzero（叠层同向不镂空）"], ["evenodd", "evenodd（叠层互镂空）"]] }
+          ] },
+          { "cols": 1, "fields": [
+            { "widget": "action", "action": "pathCurve", "label": "生成函数曲线…" },
+            { "widget": "action", "action": "pathClose", "label": "闭合 / 断开轮廓" },
+            { "widget": "action", "action": "pathToShape", "label": "转回形状" },
+            { "hint": "画布上选中路径：拖方形节点改位置、拖圆点改曲率；直线段中点有个「弯一弯」圆点，拖它就能把这根直线直接拉成曲线（不用先去点小锚点）。双击线段加点，选中节点后 Delete 删点（Alt 键拖动可断开控制柄）。由形状转来的路径会多一个「转回形状」按钮，可还原成原形状。" }
+          ] }
+        ] },
+        { "sep": true, "title": "填充", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.background", "label": "填充色", "widget": "color", "default": "#dbe7ff" },
+            { "path": "props.fillType", "label": "填充类型", "widget": "select", "default": "solid",
+              "options": [["solid", "纯色"], ["gradient", "渐变"], ["image", "图片"], ["none", "无填充"]] },
+            { "path": "props.fillGradientTo", "label": "渐变终止色", "widget": "color", "default": "#ffffff" },
+            { "path": "props.fillImage", "label": "填充图片", "widget": "asset", "default": "", "placeholder": "assets/xxx.png",
+              "desc": "图片填充素材（工程内相对路径），可点「浏览…」从磁盘选；填充类型选「图片」时生效。图片拉伸铺满轮廓外框、再按轮廓裁剪，与 PowerPoint 的图片填充（拉伸）一致" },
+            { "path": "props.fillGradientAngle", "label": "渐变角度", "widget": "number", "default": 90, "min": -360, "max": 360, "fallback": 90 },
+            { "path": "props.fillOpacity", "label": "填充不透明度", "widget": "range", "default": 1, "min": 0, "max": 1, "step": 0.05 }
+          ] }
+        ] },
+        { "sep": true, "title": "描边", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderColor", "label": "描边色", "widget": "color", "default": "#2f6fed" },
+            { "path": "style.borderWidth", "label": "描边", "widget": "stroke", "default": 0, "min": 0, "max": 40, "fallback": 2,
+              "desc": "「无边框」= 不描边（相当于宽度 0）。无边框的图形照样导出成 PPT 原生矢量，不会被转成图片" },
+            { "path": "props.strokeDash", "label": "线型", "widget": "select", "default": "solid",
+              "options": [["solid", "实线"], ["dash", "虚线"], ["longDash", "长虚线"], ["dot", "点线"], ["dashDot", "点划线"], ["roundDot", "圆点线"]] },
+            { "path": "props.strokeCap", "label": "线端", "widget": "select", "default": "butt",
+              "options": [["butt", "平头"], ["round", "圆头"], ["square", "方头"]] },
+            { "path": "props.strokeJoin", "label": "拐角", "widget": "select", "default": "miter",
+              "options": [["miter", "尖角"], ["round", "圆角"], ["bevel", "斜切"]] }
+          ] }
+        ] },
+        { "sep": true, "title": "阴影 / 发光 / 倒影", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.shadowOn", "label": "启用阴影", "widget": "checkbox", "default": false },
+            { "path": "props.shadowColor", "label": "阴影颜色", "widget": "color", "default": "#000000" },
+            { "path": "props.shadowX", "label": "阴影 X 偏移", "widget": "number", "default": 2, "min": -100, "max": 100, "fallback": 2 },
+            { "path": "props.shadowY", "label": "阴影 Y 偏移", "widget": "number", "default": 3, "min": -100, "max": 100, "fallback": 3 },
+            { "path": "props.shadowBlur", "label": "阴影模糊", "widget": "number", "default": 6, "min": 0, "max": 100, "fallback": 6 },
+            { "path": "props.shadowOpacity", "label": "阴影不透明度", "widget": "range", "default": 0.35, "min": 0, "max": 1, "step": 0.05 },
+            { "path": "props.glowOn", "label": "启用发光", "widget": "checkbox", "default": false },
+            { "path": "props.glowColor", "label": "发光颜色", "widget": "color", "default": "#2f6fed" },
+            { "path": "props.glowSize", "label": "发光大小", "widget": "number", "default": 8, "min": 0, "max": 100, "fallback": 8 },
+            { "path": "props.reflectOn", "label": "启用倒影", "widget": "checkbox", "default": false },
+            { "path": "props.reflectOpacity", "label": "倒影不透明度", "widget": "range", "default": 0.35, "min": 0, "max": 1, "step": 0.05 },
+            { "path": "props.reflectSize", "label": "倒影高度占比", "widget": "number", "default": 50, "min": 0, "max": 100, "fallback": 50 },
+            { "path": "props.reflectGap", "label": "倒影间距", "widget": "number", "default": 0, "min": 0, "max": 100, "fallback": 0 }
+          ] }
+        ] }
+      ]
+    },
+    "connector": {
+      "label": "连线",
+      "name": "连线",
+      "w": 200,
+      "h": 120,
+      "style": { "background": "transparent", "borderWidth": 2, "borderColor": "#2f6fed", "borderStyle": "solid" },
+      "desc": "元素间连线：两端绑在元素上，元素一动线自己跟着走。右键元素「拉一条连线到…」或选中多个元素「按顺序连线」即可生成；走线方式、箭头、线型都在下面调",
+      "modelNote": "画流程图 / 流程链 / 有向关系时用它连接两个节点，不要用 shape 的直线或箭头图形代替。端点写在 props.from / props.to 里：① 写目标元素的名字或它的文字内容（如 \"开始框\"、\"开始\"，推荐——节点移动后线会自己跟着走）；② 写 {\"x\": 绝对画布坐标, \"y\": 绝对画布坐标} 的自由端点。至少把一端绑到元素，否则这条线会退化成一个看不见的点。arrowEndType 默认 triangle（末端画实心三角箭头）、arrowStartType 默认 none；两者的类型取 none 无 / triangle 实心三角 / hollowTriangle 空心三角 / open 开放箭头 / diamond 实心菱形 / hollowDiamond 空心菱形 / stealth 燕尾（UML 的继承用 hollowTriangle、组合用 diamond、聚合用 hollowDiamond、依赖用 open 配虚线）；route 取 straight 直线 / elbow 折线 / curve 曲线（默认，也是画布上新建连线的默认走线）。插入时 x / y / w / h 不用自己算，系统按两端位置自动算好。",
+      "sections": [
+        { "title": "走线", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.route", "label": "走线方式", "widget": "select", "default": "curve",
+              "options": [["curve", "曲线（默认）"], ["straight", "直线"], ["elbow", "折线（正交）"]] },
+            { "path": "props.corner", "label": "折线圆角", "widget": "number", "default": 8, "min": 0, "max": 200, "fallback": 8 }
+          ] },
+          { "cols": 2, "fields": [
+            { "path": "props.arrowStartType", "label": "起点箭头", "widget": "select", "default": "none",
+              "options": [["none", "无"], ["triangle", "实心三角"], ["hollowTriangle", "空心三角"], ["open", "开放箭头"], ["diamond", "实心菱形"], ["hollowDiamond", "空心菱形"], ["stealth", "燕尾"]] },
+            { "path": "props.arrowEndType", "label": "终点箭头", "widget": "select", "default": "triangle",
+              "options": [["none", "无"], ["triangle", "实心三角"], ["hollowTriangle", "空心三角"], ["open", "开放箭头"], ["diamond", "实心菱形"], ["hollowDiamond", "空心菱形"], ["stealth", "燕尾"]] }
+          ] },
+          { "cols": 1, "fields": [
+            { "path": "props.arrowSize", "label": "箭头大小", "widget": "number", "default": 10, "min": 3, "max": 60, "fallback": 10 }
+          ] },
+          { "cols": 1, "fields": [
+            { "hint": "连线的位置 / 尺寸是由两端算出来的包围盒，不用手动改；拖动两端的元素线会自己跟随。" },
+            { "hint": "双击线上加折点、拖折点改走线、双击折点删除；拖两端的小空心圈改连接点。" },
+            { "hint": "新建连线默认走曲线。线上两个小方块是曲线控制柄：拖它把走线弯成弧线（贝塞尔），直线 / 折线也能直接拖弯，一拖就走线方式自动变曲线。" },
+            { "hint": "两端的小空心圈在自由端点（没连元素）或绑定对象已被删除时画成橙色虚线：拖它落到某个元素上，就能重新连上。" }
+          ] }
+        ] },
+        { "sep": true, "title": "端点", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.from.anchor", "label": "起点出线边", "widget": "select", "fallback": "auto",
+              "options": [["auto", "自动"], ["c", "中心"], ["l", "左边"], ["r", "右边"], ["t", "上边"], ["b", "下边"]] },
+            { "path": "props.to.anchor", "label": "终点入线边", "widget": "select", "fallback": "auto",
+              "options": [["auto", "自动"], ["c", "中心"], ["l", "左边"], ["r", "右边"], ["t", "上边"], ["b", "下边"]] }
+          ] },
+          { "cols": 1, "fields": [
+            { "hint": "指定一条边 = 钉在该边中点：拖元素时连接点跟着元素平移、不会自己换边。选「自动」才会随位置变。想精确改连接点，直接拖线上的小空心圈。" }
+          ] }
+        ] },
+        { "sep": true, "title": "描边", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "style.borderColor", "label": "线条颜色", "widget": "color", "default": "#2f6fed" },
+            { "path": "style.borderWidth", "label": "线条粗细", "widget": "number", "default": 2, "min": 0, "max": 40, "fallback": 2 },
+            { "path": "props.strokeDash", "label": "线型", "widget": "select", "default": "solid",
+              "options": [["solid", "实线"], ["dash", "虚线"], ["longDash", "长虚线"], ["dot", "点线"], ["dashDot", "点划线"], ["roundDot", "圆点线"]] },
+            { "path": "props.strokeCap", "label": "线端", "widget": "select", "default": "butt",
+              "options": [["butt", "平头"], ["round", "圆头"], ["square", "方头"]] },
+            { "path": "props.strokeJoin", "label": "拐角", "widget": "select", "default": "round",
+              "options": [["miter", "尖角"], ["round", "圆角"], ["bevel", "斜切"]] }
+          ] }
+        ] }
+      ]
+    },
+    "scene": {
+      "label": "微场景",
+      "name": "微场景",
+      "w": 480,
+      "h": 270,
+      "style": {},
+      "desc": "用前端代码绘制的动态场景容器：代码跑在独立沙箱里，与页面其余内容互不干扰；无边框、背景透明，直接叠在页面原有元素之上",
+      "sections": [
+        { "title": "场景代码", "rows": [
+          { "cols": 1, "fields": [
+            { "hint": "代码在独立沙箱（iframe）里运行：拿不到主页面 DOM、CSS 不外泄、崩了只影响这个容器。" },
+            { "path": "props.code", "widget": "textarea", "rows": 12, "mono": true, "default": "",
+              "desc": "容器内的前端代码；可选实现 mount(container, params) / seek(t) / unmount()，实现了 seek 就能跟随时间轴（t 为 0..duration 秒）" },
+            { "widget": "action", "action": "scenePoster", "label": "生成封面帧" },
+            { "widget": "action", "action": "sceneGif", "label": "导出 GIF 动图…" }
+          ] }
+        ] },
+        { "sep": true, "title": "本地库", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.libs", "label": "使用库", "widget": "libs", "default": [],
+              "desc": "勾选本地缓存的库（源码由宿主内联进沙箱，运行时不再联网）；未下载的库请先到「设置 → 场景库」下载" }
+          ] }
+        ] },
+        { "sep": true, "title": "表演", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.duration", "label": "时长(s)", "widget": "number", "default": 3, "min": 1, "max": 600, "desc": "表演时长（秒），seek(t) 的 t 取 0..duration" },
+            { "path": "props.loop", "label": "循环", "widget": "checkbox", "default": true, "desc": "是否循环播放：实现了 seek 的场景由时间轴循环喂 t（放映、编辑画布、导出 HTML 都是），自播的场景由容器自己循环" }
+          ] },
+          { "cols": 1, "fields": [
+            { "path": "props.poster", "label": "封面帧", "widget": "text", "default": "", "placeholder": "dataURL 或 assets/xxx.png（点上面的按钮生成）", "desc": "封面帧：编辑态静帧与 PPTX/PDF 导出使用，不执行代码" }
+          ] }
+        ] }
+      ]
+    },
+    "group": {
+      "label": "分组",
+      "name": "分组",
+      "w": 200,
+      "h": 120,
+      "style": {},
+      "desc": "容器，把多个元素归为一组；没有类型专属参数",
+      "sections": []
+    }
+  }
+}

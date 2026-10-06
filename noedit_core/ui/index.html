@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NoEdit Core</title>
+  <link rel="icon" href="/img/logo.svg" />
+  <link rel="stylesheet" href="/ui/app.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="/img/logo.svg" alt="NoEdit Core" />
+      <span class="brand-text">NoEdit <em>Core</em></span>
+    </div>
+    <div class="proj">
+      <span class="proj-name" id="proj-name">未打开工程</span>
+      <span class="proj-path" id="proj-path"></span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" id="btn-reload" data-i18n-title="btn.reload.title" title="从磁盘重新读取工程">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.6" /><path d="M20 5v6h-6" /></svg>
+        <span data-i18n="btn.reload">重新加载</span>
+      </button>
+      <button class="btn" id="btn-open">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+        <span data-i18n="btn.open">打开工程</span>
+      </button>
+      <button class="btn" id="btn-new">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        <span data-i18n="btn.new">新建工程</span>
+      </button>
+      <div class="dropdown">
+        <button class="btn primary" id="btn-export">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>
+          <span data-i18n="btn.export">导出</span>
+          <svg class="ico caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </button>
+        <div class="menu" id="export-menu" hidden>
+          <button data-fmt="html">HTML<span class="menu-note" data-i18n="menu.html.note">会动</span></button>
+          <button data-fmt="pptx">PPTX<span class="menu-note" data-i18n="menu.pptx.note">可编辑</span></button>
+          <button data-fmt="pdf">PDF</button>
+          <button data-fmt="png">PNG</button>
+          <button data-fmt="svg">SVG</button>
+        </div>
+      </div>
+      <div class="lang">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z" /></svg>
+        <select id="lang-select" class="mini-select lang-select" data-i18n-title="lang.label" title="语言"></select>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout" id="layout" hidden>
+    <aside class="side" id="side">
+      <section class="panel pages-panel" id="pages-panel">
+        <div class="panel-head">
+          <span data-i18n="panel.pages">页面</span>
+          <button class="mini" id="btn-add-page" data-i18n-title="panel.pages.add.title" title="新增一页">＋</button>
+        </div>
+        <ul class="list list-pages" id="page-list"></ul>
+      </section>
+
+      <div class="v-split" id="v-split" role="separator" aria-orientation="horizontal"
+           data-i18n-title="stage.split.title" title="拖动调节高度，双击恢复对半"><span></span></div>
+
+      <section class="panel els-panel">
+        <div class="panel-head">
+          <span data-i18n="panel.elements">元素</span>
+          <select class="mini-select" id="add-type" data-i18n-title="panel.elements.type.title" title="选择要新增的元素类型"></select>
+          <button class="mini" id="btn-add-el" data-i18n-title="panel.elements.add.title" title="新增元素">＋</button>
+        </div>
+        <ul class="list" id="el-list"></ul>
+      </section>
+    </aside>
+
+    <div class="h-split" id="split-left" role="separator" aria-orientation="vertical"
+         data-i18n-title="split.h.title" title="拖动调节宽度，双击恢复默认"><span></span></div>
+
+    <section class="stage-wrap">
+      <div class="stage-bar">
+        <div class="seg">
+          <button class="mini" id="btn-prev" data-i18n-title="stage.prev.title" title="上一页">◀</button>
+          <span id="page-indicator">-</span>
+          <button class="mini" id="btn-next" data-i18n-title="stage.next.title" title="下一页">▶</button>
+        </div>
+        <span class="spacer"></span>
+        <span class="hint" id="stage-hint" data-i18n="stage.hint">点击画布中的元素即可选中</span>
+        <button class="mini wide" id="btn-fit" data-i18n="stage.fit" data-i18n-title="stage.fit.title" title="缩放到适应窗口">适应窗口</button>
+      </div>
+      <div class="stage-box" id="stage-box" data-i18n-title="stage.wheel.title" title="滚轮切换页面">
+        <div class="stage-frame" id="stage-frame">
+          <iframe id="canvas-frame" title="画布预览"></iframe>
+        </div>
+      </div>
+      <div class="stage-foot" id="stage-foot">-</div>
+    </section>
+
+    <div class="h-split" id="split-right" role="separator" aria-orientation="vertical"
+         data-i18n-title="split.h.title" title="拖动调节宽度，双击恢复默认"><span></span></div>
+
+    <aside class="props" id="props-panel">
+      <div class="panel-head">
+        <span id="props-title" data-i18n="props.title">属性</span>
+        <button class="mini danger" id="btn-del-el" data-i18n="btn.delete" data-i18n-title="btn.delete.title" title="删除选中元素" hidden>删除</button>
+      </div>
+      <div class="props-body" id="props-body"></div>
+    </aside>
+  </main>
+
+  <!-- 落地页：新建 / 打开工程（有工程在编辑时，点遮罩、点关闭或按 Esc 可返回） -->
+  <div class="overlay" id="landing" hidden>
+    <div class="card" role="dialog" aria-modal="true">
+      <button class="card-close" id="btn-close-landing" data-i18n-title="landing.close" title="关闭" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      </button>
+      <aside class="card-aside">
+        <img class="card-logo" src="/img/logo.svg" alt="NoEdit Core" />
+        <h1>NoEdit <em>Core</em></h1>
+        <p class="sub" data-i18n="landing.sub">本地画布编辑。新建或打开一个工程目录即可开始。</p>
+        <ul class="card-points">
+          <li data-i18n="landing.f1"></li>
+          <li data-i18n="landing.f2"></li>
+          <li data-i18n="landing.f3"></li>
+        </ul>
+      </aside>
+      <section class="card-main">
+        <div class="defline">
+          <span class="deflabel" data-i18n="landing.defdir">默认目录</span>
+          <input id="defdir-input" data-i18n-ph="landing.defdir.ph" placeholder="默认工程目录" />
+          <button class="mini wide" id="btn-defdir-save" data-i18n="landing.defdirSave">设为默认</button>
+        </div>
+        <div class="tabs" id="landing-tabs">
+          <button class="tab active" data-tab="create" data-i18n="landing.create">新建工程</button>
+          <button class="tab" data-tab="open" data-i18n="landing.open">打开工程</button>
+        </div>
+        <div class="tab-pane" data-pane="create">
+          <label class="field"><span data-i18n="landing.name">名称</span><input id="new-name" data-i18n-value="landing.newName" value="未命名项目" /></label>
+          <label class="field"><span data-i18n="landing.dir">父目录</span><input id="new-dir" data-i18n-ph="landing.dir.ph" placeholder="例如 D:\work" /></label>
+          <label class="field"><span data-i18n="landing.preset">尺寸</span><select id="new-preset"></select></label>
+          <button class="btn primary block" id="btn-do-create" data-i18n="landing.createBtn">新建并打开</button>
+        </div>
+        <div class="tab-pane" data-pane="open" hidden>
+          <button class="btn primary block" id="btn-browse-here" hidden></button>
+          <ul class="tree" id="browse-tree"></ul>
+          <h3 data-i18n="landing.recent">最近打开</h3>
+          <ul class="recent" id="recent-list"></ul>
+        </div>
+        <p class="err" id="landing-err"></p>
+      </section>
+    </div>
+  </div>
+
+  <div class="toasts" id="toasts"></div>
+  <script src="/ui/i18n.js"></script>
+  <script src="/ui/app.js"></script>
+</body>
+</html>
