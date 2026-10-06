@@ -14,6 +14,3 @@ dist/
 # 自测产物
 _smoke_out/
 *.log
-
-# 示例 / 业务 pptx
-slides/
