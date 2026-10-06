@@ -1,0 +1,45 @@
+NoEdit Core / NoEdit 分享链接汇总
+================================================
+
+一、GitHub
+------------------------------------------------
+仓库主页
+https://github.com/and-zhao/noedit_core
+
+Releases 页面
+https://github.com/and-zhao/noedit_core/releases
+
+Clone 地址（HTTPS）
+https://github.com/and-zhao/noedit_core.git
+
+
+二、下载直链
+------------------------------------------------
+1) Agent Skill 安装包（1.12 MB）
+https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
+SHA256: 6f1516669df371cd72a49a54337dfd3ecdc6070ef5b97e5e652cd43b9df0dff7
+
+2) 完整版桌面安装包（111.59 MB）
+https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/NoEdit-Setup-0.2.0.exe
+SHA256: 9701d4e54cd05be1a1c91becdae655d629ca86830da5d834ddb7ed46ad61495d
+
+
+三、演示视频（B 站）
+------------------------------------------------
+https://www.bilibili.com/video/BV1hQHZ6uEiT
+
+
+四、让别人安装 skill（把下面这句话发给对方）
+------------------------------------------------
+安装这个 skill：https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/noedit-core-skill.zip
+
+说明：对方把这句话发给自己的 agent，agent 会自动下载压缩包、找到里面
+含 SKILL.md 的 noedit-core/ 目录，装到全局 skills 根下
+（如 ~/.trae-cn/skills/noedit-core/）。
+装好后直接提需求即可，例如“做一份关于 XX 的 10 页 PPT，导出 pptx”。
+
+
+五、自己打 skill 包
+------------------------------------------------
+python packaging/build_skill.py
+产物：dist/noedit-core/ 与 dist/noedit-core-skill.zip
