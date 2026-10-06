@@ -22,6 +22,41 @@
 
 <p align="center">A <b>minimal PPT creation core</b>: build multi-page canvases (decks) with a plain Python package, and export to pptx / pdf / html / png / svg.</p>
 
+<h2 align="center">NoEdit Core vs. NoEdit — which one do you need?</h2>
+
+<table align="center">
+  <tr>
+    <th align="right"></th>
+    <th align="center">NoEdit Core <sub>(this repo)</sub></th>
+    <th align="center">NoEdit <sub>(full version)</sub></th>
+  </tr>
+  <tr>
+    <td align="right"><b>What it is</b></td>
+    <td>Open-source PPT <b>core</b> + <b>Agent Skill</b> — a plain Python package that you (or your agent) drive</td>
+    <td>Ready-to-use <b>desktop app</b>, works out of the box</td>
+  </tr>
+  <tr>
+    <td align="right"><b>AI writes the deck</b></td>
+    <td>Not included — the agent writes the element JSON, this core renders and exports</td>
+    <td>Built-in main agent + sub-agents generate the deck for you</td>
+  </tr>
+  <tr>
+    <td align="right"><b>How to get it</b></td>
+    <td><code>git clone</code>, then install <code>noedit-core</code> as a skill</td>
+    <td><b>Download the installer</b> (link below)</td>
+  </tr>
+</table>
+
+<p align="center">
+  <a href="https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/NoEdit-Setup-0.2.0.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20DOWNLOAD%20NoEdit-FULL%20VERSION-2EA44F?style=for-the-badge&logoColor=white" alt="Download NoEdit full version" width="560">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Windows installer · v0.2.0 · <a href="https://github.com/and-zhao/noedit_core/releases">all releases</a></sub>
+</p>
+
 **Highlights**
 
 - Exports **pptx** with ultra-high fidelity — no distortion
@@ -57,6 +92,16 @@ see `install_scene_lib`.)
 ## NoEdit · Full Version
 
 > **NoEdit** is the full version of **NoEdit_core** — ready to use out of the box.
+
+<p align="center">
+  <a href="https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/NoEdit-Setup-0.2.0.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20DOWNLOAD%20NoEdit-FULL%20VERSION-2EA44F?style=for-the-badge&logoColor=white" alt="Download NoEdit full version" width="560">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Windows installer · v0.2.0 · <a href="https://github.com/and-zhao/noedit_core/releases">all releases</a></sub>
+</p>
 
 Its architecture follows **MCP**, so it can serve PPT generation to external agents. Internally it uses a
 **main agent + sub-agents** model, dramatically cutting PPT generation time and maximizing cache-hit efficiency

@@ -22,6 +22,41 @@
 
 <p align="center"><b>最小構成の PPT 作成コア</b>：素の Python パッケージで複数ページのキャンバス（スライド）を作り、pptx / pdf / html / png / svg に書き出せます。</p>
 
+<h2 align="center">NoEdit Core と NoEdit の違い —— どちらを使うべき？</h2>
+
+<table align="center">
+  <tr>
+    <th align="right"></th>
+    <th align="center">NoEdit Core <sub>（本リポジトリ）</sub></th>
+    <th align="center">NoEdit <sub>（フルバージョン）</sub></th>
+  </tr>
+  <tr>
+    <td align="right"><b>概要</b></td>
+    <td>オープンソースの PPT <b>コア</b> + <b>Agent Skill</b>。素の Python パッケージで、あなた（またはエージェント）が動かします</td>
+    <td>すぐ使える<b>デスクトップアプリ</b>。インストールして起動するだけ</td>
+  </tr>
+  <tr>
+    <td align="right"><b>AI による生成</b></td>
+    <td>含まれない —— 要素 JSON はエージェントが書き、このコアが描画と書き出しを担当</td>
+    <td>内蔵のメインエージェント + サブエージェントがスライドを生成</td>
+  </tr>
+  <tr>
+    <td align="right"><b>入手方法</b></td>
+    <td><code>git clone</code> して <code>noedit-core</code> を skill としてインストール</td>
+    <td><b>インストーラーをダウンロード</b>（下のリンク）</td>
+  </tr>
+</table>
+
+<p align="center">
+  <a href="https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/NoEdit-Setup-0.2.0.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20DOWNLOAD%20NoEdit-FULL%20VERSION-2EA44F?style=for-the-badge&logoColor=white" alt="NoEdit フルバージョンをダウンロード" width="560">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Windows インストーラー · v0.2.0 · <a href="https://github.com/and-zhao/noedit_core/releases">すべてのリリース</a></sub>
+</p>
+
 **主な特徴**
 
 - **pptx** 形式で超高精細に書き出し、劣化なし
@@ -56,6 +91,16 @@
 ## NoEdit · フルバージョン
 
 > **NoEdit** は **NoEdit_core** のフルバージョンで、すぐに使えます。
+
+<p align="center">
+  <a href="https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/NoEdit-Setup-0.2.0.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20DOWNLOAD%20NoEdit-FULL%20VERSION-2EA44F?style=for-the-badge&logoColor=white" alt="NoEdit フルバージョンをダウンロード" width="560">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Windows インストーラー · v0.2.0 · <a href="https://github.com/and-zhao/noedit_core/releases">すべてのリリース</a></sub>
+</p>
 
 アーキテクチャには **MCP** 構造を採用し、外部エージェントに PPT 生成サービスを提供できます。内部では
 **メインエージェント + サブエージェント**方式を採用し、PPT 生成時間を大幅に短縮するとともに、キャッシュヒット

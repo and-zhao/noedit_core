@@ -22,6 +22,41 @@
 
 <p align="center">一个<b>最小 PPT 创作核心</b>：用一个普通 Python 包建多页画布（PPT），并导出 pptx / pdf / html / png / svg。</p>
 
+<h2 align="center">NoEdit Core 和 NoEdit 有什么区别？该用哪个？</h2>
+
+<table align="center">
+  <tr>
+    <th align="right"></th>
+    <th align="center">NoEdit Core <sub>（本仓库）</sub></th>
+    <th align="center">NoEdit <sub>（完整版）</sub></th>
+  </tr>
+  <tr>
+    <td align="right"><b>是什么</b></td>
+    <td>开源的 PPT <b>核心库</b> + <b>Agent Skill</b>，一个普通 Python 包，由你（或你的 agent）驱动</td>
+    <td>开箱即用的<b>桌面软件</b>，下载安装就能用</td>
+  </tr>
+  <tr>
+    <td align="right"><b>AI 生成内容</b></td>
+    <td>不含——agent 负责写元素 JSON，本核心只负责渲染与导出</td>
+    <td>内置主 agent + 子代理，直接帮你把 PPT 生成出来</td>
+  </tr>
+  <tr>
+    <td align="right"><b>怎么获取</b></td>
+    <td><code>git clone</code> 后把 <code>noedit-core</code> 装成 skill</td>
+    <td><b>下载安装包</b>（见下方链接）</td>
+  </tr>
+</table>
+
+<p align="center">
+  <a href="https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/NoEdit-Setup-0.2.0.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20DOWNLOAD%20NoEdit-FULL%20VERSION-2EA44F?style=for-the-badge&logoColor=white" alt="下载 NoEdit 完整版" width="560">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Windows 安装包 · v0.2.0 · <a href="https://github.com/and-zhao/noedit_core/releases">全部版本</a></sub>
+</p>
+
 **核心特点**
 
 - 可导出 **pptx** 格式，超高保真度、不失真
@@ -55,6 +90,16 @@
 ## NoEdit · 完整版
 
 > **NoEdit** 是 **NoEdit_core** 的完整版，上手即用。
+
+<p align="center">
+  <a href="https://github.com/and-zhao/noedit_core/releases/download/v0.2.0/NoEdit-Setup-0.2.0.exe">
+    <img src="https://img.shields.io/badge/%E2%AC%87%20DOWNLOAD%20NoEdit-FULL%20VERSION-2EA44F?style=for-the-badge&logoColor=white" alt="下载 NoEdit 完整版" width="560">
+  </a>
+</p>
+
+<p align="center">
+  <sub>Windows 安装包 · v0.2.0 · <a href="https://github.com/and-zhao/noedit_core/releases">全部版本</a></sub>
+</p>
 
 软件架构上采用 **MCP** 结构，可对外部智能体提供生成 PPT 的服务；内部采用**主 agent + 子代理**模式，
 极大压缩 PPT 生成时间，并最大化优化缓存命中策略、节省 token。
