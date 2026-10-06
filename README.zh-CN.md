@@ -87,6 +87,14 @@
   <img src="img/slide4.png" width="24%">
 </p>
 
+## 示例 PPT
+
+[`slides/`](slides/) 目录里放了三个用本项目做出来的真实 PPT，下载后用 PowerPoint / WPS 打开，就能直观看到保真度和可编辑性：
+
+- [21世纪的中美博弈.pptx](slides/21世纪的中美博弈.pptx)
+- [qPCR实验流程-10页.pptx](slides/qPCR实验流程-10页.pptx)
+- [大模型发展路径与技术原理.pptx](slides/大模型发展路径与技术原理.pptx)
+
 ## NoEdit · 完整版
 
 > **NoEdit** 是 **NoEdit_core** 的完整版，上手即用。

@@ -89,6 +89,14 @@ see `install_scene_lib`.)
   <img src="img/slide4.png" width="24%">
 </p>
 
+## Example Decks
+
+Three real decks made with this core live in [`slides/`](slides/) — download them and open in PowerPoint / WPS to judge the fidelity and editability yourself:
+
+- [21世纪的中美博弈.pptx](slides/21世纪的中美博弈.pptx)
+- [qPCR实验流程-10页.pptx](slides/qPCR实验流程-10页.pptx)
+- [大模型发展路径与技术原理.pptx](slides/大模型发展路径与技术原理.pptx)
+
 ## NoEdit · Full Version
 
 > **NoEdit** is the full version of **NoEdit_core** — ready to use out of the box.

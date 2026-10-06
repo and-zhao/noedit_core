@@ -88,6 +88,14 @@
   <img src="img/slide4.png" width="24%">
 </p>
 
+## サンプル PPT
+
+[`slides/`](slides/) ディレクトリに、本プロジェクトで作成した実際の PPT を 3 つ置いています。ダウンロードして PowerPoint / WPS で開けば、再現度と編集しやすさを確認できます：
+
+- [21世纪的中美博弈.pptx](slides/21世纪的中美博弈.pptx)
+- [qPCR实验流程-10页.pptx](slides/qPCR实验流程-10页.pptx)
+- [大模型发展路径与技术原理.pptx](slides/大模型发展路径与技术原理.pptx)
+
 ## NoEdit · フルバージョン
 
 > **NoEdit** は **NoEdit_core** のフルバージョンで、すぐに使えます。
