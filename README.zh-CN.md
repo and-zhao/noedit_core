@@ -380,4 +380,4 @@ python tests/smoke.py
 邮箱：andzhaojiale@163.com
 
 ## MDB2005220：Git 练习测试提交
-
+增加了版本更新模块
