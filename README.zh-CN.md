@@ -378,3 +378,6 @@ python tests/smoke.py
 **赵佳乐** —— 中国科学院大学 计算机技术硕士
 
 邮箱：andzhaojiale@163.com
+
+## MDB2005220：Git 练习测试提交
+
