@@ -3,6 +3,12 @@
 <h1 align="center">NoEdit Core</h1>
 
 <p align="center">
+  <b>An Agent Skill for making PPT decks.</b><br>
+  Install <code>noedit-core</code> into a skill-aware agent and just ask — the agent writes the element JSON, this skill renders and exports
+  <b>pptx · pdf · html · png · svg</b>.
+</p>
+
+<p align="center">
   <b>English</b> |
   <a href="README.zh-CN.md">简体中文</a> |
   <a href="README.ja.md">日本語</a>

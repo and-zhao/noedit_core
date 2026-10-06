@@ -3,6 +3,12 @@
 <h1 align="center">NoEdit Core</h1>
 
 <p align="center">
+  <b>一个用来做 PPT 的 Agent Skill。</b><br>
+  把 <code>noedit-core</code> 装进支持 skill 的 agent，然后直接提需求即可——agent 负责写元素 JSON，本 skill 负责渲染并导出
+  <b>pptx · pdf · html · png · svg</b>。
+</p>
+
+<p align="center">
   <a href="README.md">English</a> |
   <b>简体中文</b> |
   <a href="README.ja.md">日本語</a>

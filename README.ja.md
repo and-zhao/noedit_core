@@ -3,6 +3,12 @@
 <h1 align="center">NoEdit Core</h1>
 
 <p align="center">
+  <b>PPT を作るための Agent Skill。</b><br>
+  <code>noedit-core</code> を skill 対応のエージェントにインストールして、あとは要望を伝えるだけ —— 要素 JSON はエージェントが書き、この skill が描画して
+  <b>pptx · pdf · html · png · svg</b> に書き出します。
+</p>
+
+<p align="center">
   <a href="README.md">English</a> |
   <a href="README.zh-CN.md">简体中文</a> |
   <b>日本語</b>
