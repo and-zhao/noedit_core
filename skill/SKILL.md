@@ -24,7 +24,7 @@ description: 用 NoEdit Core 直接做 PPT / 幻灯片 / 多页画布并导出 p
 3. **只走 API，不碰 manifest 文件本身**。改页面 / 元素只走 `noedit_core.api`；直接编辑 `project.manifest.json`
    会绕过规范化与锁，极易写坏工程。
 4. **尽量多用矢量，能画则画、能用图标就用图标**。
-   （**照片感**的配图可以用你自己带的生图 / 搜图能力，见「图片策略」；但**结构图 / 原理图 / 流程图 / 装置图仍然必须用矢量画**，不许拿生图替代。）
+   （**照片感**的配图：若你当前环境提供 `image_search` / `image_generation` 工具，**必须主动调用**来补齐并落入工程 `assets/`；但**结构图 / 原理图 / 流程图 / 装置图仍然必须用矢量画**，不许拿生图替代。详见「图片策略」。）
    **矢量优先是本 skill 的第一生产力**——`shape` / `path` / `connector` / `chart` / 图标库做出来的东西
    **视觉效果好、成功率高**，能用矢量的地方**优先用矢量**，别用一大块文字或空白矩形糊过去。
    讲**结构 / 原理 / 机理 / 流程 / 关系 / 装置 / 数据**的页面，
@@ -137,7 +137,15 @@ description: 用 NoEdit Core 直接做 PPT / 幻灯片 / 多页画布并导出 p
 ### 阶段 0 · 侦察 + 材料就绪
 
 先把**内容材料**搜集齐：数据、原文段落、术语、引用、图片清单、参考。
-材料没齐不许开工——中途补资料 = 返工。缺图按「图片策略」处理：**你自带生图 / 搜图能力就先补上**（要落进 `assets/`），不能就留图槽位。
+材料没齐不许开工——中途补资料 = 返工。
+
+**图片资产要在本阶段就定稿**：列出每页需要的配图（封面视觉 / 氛围图 / 实景 / 人物 / 产品 / 截图），并判断来源：
+1. 用户已供图 → 走 `import_asset` 落入 `assets/`；
+2. **你当前环境提供 `image_search` / `image_generation` 工具** → **主动调用**补齐照片感配图，再落入 `assets/`；
+3. 无图也无工具 → 留「图槽位」（`shape:rect` + 图注 `text`），将来只改 `props.src` 即可换图。
+
+**不许用外部 http(s) URL 直接当 `props.src`**——导出件必须离线自包含。
+
 同时确认「做在哪」（不明确就进阶段 1 问用户）。
 
 ### 阶段 1 · ★ 问用户：作用对象 / 页型清单 / 篇幅 / 动效档位
@@ -688,17 +696,40 @@ api.list_assets(path)   # -> [{name, relPath, kind, size, exists}, ...]
 
 1. **用户提供了本地图** → `api.import_asset(path, [文件...])` 导进工程 `assets/`，元素
    `{"type":"image","props":{"src":rec["relPath"],"fit":"cover"}}`。导入前检查水印、截图边框、奇怪留白。
-2. **你（agent）自带生图 / 搜图能力** → **可以用，不排斥**。拿到图后**必须先落进工程再引用**：
-   - 拿到**文件路径** → `api.import_asset(path, [该文件])`；
-   - 拿到 **dataURL 字节** → 走 UI 通道 `upload_asset`（`POST /api/call`，
-     `{"name":"xx.png","data_url":"data:image/png;base64,…"}`），它会写进当前工程 `assets/` 并登记；
-   - 再用返回的 `relPath` 写 `props.src`。
-   **只用来做「照片感」的东西**：实景、人物、风景、材质、氛围、封面视觉。
-   **不要**拿它画结构图 / 原理图 / 流程图 / 装置图 / 数据图——那些按零号原则第 4 条**继续用矢量**
+2. **你（agent）自带生图 / 搜图能力** → **可以用，不排斥；有工具就要主动用，不要等用户催**。拿到图后**必须先落进工程再引用**。
+
+   **适用对象仅限「照片感」内容**：实景、人物、风景、材质、氛围、封面视觉、产品外观、真实场景。
+   **禁止**拿它画结构图 / 原理图 / 流程图 / 装置图 / 数据图——那些按零号原则第 4 条**继续用矢量**
    （AI 生图做这类图结构必错，还常带乱码文字）。
    **别让生图写文字**（中文 / 数字几乎必错）：要文字就用 `text` 元素叠上去。
    **风格必须贴全篇 6 色 token**，别让配图成为体系外的颜色。
    搜图注意版权：对外交付 / 商用优先用生图或用户自备的图。
+
+   **工具调用 → 落入工程 → 插入页面的标准动作**：
+   1. **判断哪页需要配图**：封面必有；章节页可选；数据 / 流程页原则上不配照片（用矢量）。每页最多 1 张主图，不要让照片喧宾夺主。
+   2. **搜图**（优先）：用 `image_search` 工具，关键词给**具体场景 + 风格 + 色调**，例如：
+      `"industrial robotic arm factory floor blue orange cinematic wide shot, clean background, no text"`。
+      拿到结果后挑一张**无水印、无截图边框、无奇怪留白、没有乱码文字**的图。
+   3. **生图**（搜不到或需要特定氛围时用）：用 `image_generation` 工具，提示词必须包含：
+      - 主体描述（具体物件 / 场景）；
+      - 风格词（`cinematic, clean, minimalist, professional, high quality`）；
+      - 色调词（贴合 6 色 token，如 `dark blue and orange accents`）；
+      - **负面词**：`no text, no letters, no numbers, no watermark, no UI elements, no screenshot borders, no people`（如不需要人物）。
+   4. **落入工程**：
+      - 拿到**文件路径** → `api.import_asset(path, [该文件])`；
+      - 拿到 **dataURL / URL / 字节** → 走 UI 通道 `upload_asset`（`POST /api/call`，
+        `{"name":"cover_bg.png","data_url":"data:image/png;base64,…"}`），它会写进当前工程 `assets/` 并登记。
+   5. **引用**：用返回的 `relPath` 写元素 `props.src`，例如：
+      ```python
+      rec = api.import_asset(path, ["D:\\pics\\cover_bg.png"])["imported"][0]
+      api.insert(path, {"type": "image", "name": "封面-主视觉", "x": 0, "y": 0, "w": 1280, "h": 720,
+                        "props": {"src": rec["relPath"], "fit": "cover"}})
+      ```
+      或用作页面背景：
+      ```python
+      api.update_page(path, {"background": {"type": "image", "image": "assets/cover_bg.png", "fit": "cover"}})
+      ```
+   6. **失败 fallback**：搜图 / 生图失败、返回不可用、或工具不存在时，**立即退回「图槽位」**：一个浅色 `shape:rect` + 图注 `text`，命名 `图槽-01`，不要硬等。
 3. **没有图、也没能力搞图** → 留「图槽位」：`shape/rect` + 主题浅色底，命名 `图槽-01`，
    配图注双行（14px 标题 / 12–13px 说明）。将来替换只改 `props.src` 与 `fit`。
 4. **完全不用图** → 纯几何装饰：色块、细线、圆、渐变、编号。比找图快得多。
@@ -810,6 +841,8 @@ api.export(path, "svg", pages="")
 - [ ] 内容页是不是**从母版逐页重铺**来的（核心没有复制页 API）？
 - [ ] 是不是**每页的元素攒成一批** `insert`，而不是改一处看一眼？
 - [ ] 写操作串行、读操作可并发，**先写再读**了吗？
+- [ ] 需要照片感配图的页面，图片已经 `import_asset` / `upload_asset` 落进 `assets/` 并正确写入 `props.src` 了吗？（没用外部 URL）
+- [ ] 搜图 / 生图失败的页面，已经留好「图槽位」了吗？
 
 **交付前：**
 
@@ -828,6 +861,8 @@ api.export(path, "svg", pages="")
 - [ ] `lineHeight` 写的是倍数（不是像素）吗？
 - [ ] 全篇是否统一：色 / 圆角 / 线宽 / 字号阶梯 / 页脚页码位置 / 命名规则？
 - [ ] 对齐：同类元素等宽等高、边线同一组 x/y、`gap` 统一了吗？
+- [ ] 照片感配图都走 `assets/` 内相对路径了吗？`props.src` 没有写成 `http(s)://...` 外链吧？
+- [ ] 生图 / 搜图出来的图没有水印、没有乱码文字、没有截图边框吧？
 - [ ] 素材只写了 `relPath`（不是绝对路径）吗？缺图的地方留了图槽位吗？
 - [ ] 有没有空白页 / 漏页？（用 `list_elements` 逐页扫一遍）
 - [ ] 改动了 `locked:true` 的元素吗？（应避开）
@@ -841,6 +876,7 @@ api.export(path, "svg", pages="")
 - **元素字段字典**（全量 props/style、默认值、style→CSS 映射、table/chart/code 字段、公式写法）→ [references/element-schema.md](references/element-schema.md)
 - **API 完整签名与返回结构** → [references/api.md](references/api.md)（**微场景（scene）** API：`scene_libs` / `install_scene_lib` / `export_scene_gif` / `compose_scene_gif` 见其中「微场景」节）
 - **导出细节与依赖** → [references/export.md](references/export.md)
+- **图片插入工作流**（搜图 / 生图 → 落入工程 → 插入页面；含关键词公式、提示词模板、失败 fallback）→ [references/image-workflow.md](references/image-workflow.md)
 - **设计参考**（术语表 / CRAP / 中文排版 / 六套配色配方 / 常用版式 / 装饰手法 / 常见错误 / 示意图构成）→ [references/design-recipes.md](references/design-recipes.md)
 - **页型参考**（底板装饰层 + 封面 / 目录 / 章节 / 内容 / 致谢的逐元素坐标）→ [references/page-templates.md](references/page-templates.md)
 - **科研 & 矢量绘图参考**（做科研图表 / 原理图 / 机制图 / 任意矢量图时必读：选型 / 统计量 / 坐标轴 / 配色 / 多面板 + 矢量保真 + 投稿导出）→ [references/sci-vector-drawing.md](references/sci-vector-drawing.md)
