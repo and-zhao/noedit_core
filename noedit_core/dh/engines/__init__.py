@@ -44,8 +44,12 @@ def _ensure_loaded():
 
 def auto_pick(available_fn) -> str:
     """按效果优先级返回第一个可用的引擎名：liveportrait → sadtalker → lightweight。"""
+    order = fallback_order(available_fn)
+    return order[0] if order else ""
+
+
+def fallback_order(available_fn) -> list:
+    """按效果优先级列出所有可用引擎，供 generator 在运行期失败时逐个降级。"""
     _ensure_loaded()
-    for name in ("liveportrait", "sadtalker", "lightweight"):
-        if name in _ENGINES and available_fn(name) == "ok":
-            return name
-    return ""
+    return [name for name in ("liveportrait", "sadtalker", "lightweight")
+            if name in _ENGINES and available_fn(name) == "ok"]

@@ -3,7 +3,7 @@
 
 用法：
     python -m noedit_core.dh.validator              # 全量探测并打印
-    python -m noedit_core.dh.validator --download liveportrait   # 下载模型权重（未实现，提示手动）
+    python -m noedit_core.dh.validator --download liveportrait   # 打印该引擎的手动接入步骤
 """
 from __future__ import annotations
 
@@ -70,13 +70,30 @@ def _print_status():
 
 
 def _download_hint(engine: str):
-    print("模型权重请按 dh/README.md 手动下载：")
+    """本地 GPU 引擎的权重没法替用户下载（各家托管地址会变），给可复制的步骤。"""
     if engine == "liveportrait":
-        print("  https://github.com/KlingAIResearch/LivePortrait  →  pretrained weights")
+        print("LivePortrait 接入步骤：")
+        print("  git clone https://github.com/KlingAIResearch/LivePortrait")
+        print("  cd LivePortrait && pip install -r requirements.txt")
+        print("  按仓库 README『Pretrained models』一节把权重下到 <仓库>/pretrained_weights/")
+        print("  指认仓库：Windows `set NOEDIT_DH_LIVEPORTRAIT=<仓库绝对路径>`，")
+        print("            类 Unix `export NOEDIT_DH_LIVEPORTRAIT=<仓库绝对路径>`")
     elif engine == "sadtalker":
-        print("  https://github.com/OpenTalker/SadTalker  →  checkpoints（脚本 bash scripts/download_models.sh）")
+        print("SadTalker 接入步骤：")
+        print("  git clone https://github.com/OpenTalker/SadTalker")
+        print("  cd SadTalker && bash scripts/download_models.sh   # 权重落到 checkpoints/")
+        print("  pip install torch torchvision opencv-python（按本机 CUDA 版本选 torch 构建）")
+        print("  指认仓库：Windows `set NOEDIT_DH_SADTALKER=<仓库绝对路径>`，")
+        print("            类 Unix `export NOEDIT_DH_SADTALKER=<仓库绝对路径>`")
+    elif engine in ("lightweight", "cloud"):
+        print("%s 不需要下载模型权重：" % engine)
+        print("  lightweight: pip install pillow imageio-ffmpeg（或系统装 ffmpeg）")
+        print("  cloud: 复制 dh/cloud_config.example.json -> cloud_config.json 填 key；"
+              "注意桥接分支尚未接入，dh_status 会如实回报")
     else:
-        print("  未知引擎:", engine)
+        print("未知引擎:", engine, "（可选: lightweight / liveportrait / sadtalker / cloud）")
+    if engine in ("liveportrait", "sadtalker"):
+        print("装好后重跑 `python -m noedit_core.dh.validator` 确认状态变成 ok。")
 
 
 def main(argv=None):

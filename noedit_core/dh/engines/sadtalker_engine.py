@@ -44,6 +44,7 @@ class SadTalkerEngine(Engine):
             raise EngineError("sadtalker 引擎不可用: %s" % status)
         root = _repo_root()
         out_dir = os.path.dirname(out_path) or "."
+        started = time.time()
         cmd = [os.environ.get("PYTHON", "python"), "inference.py",
                "--driven_audio", audio,
                "--source_image", image,
@@ -51,16 +52,18 @@ class SadTalkerEngine(Engine):
                "--still", "--preprocess", "full",
                "--enhancer", "gfpgan"]
         env = dict(os.environ, PYTHONPATH=root)
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=3600, cwd=root, env=env)
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                   encoding="utf-8", errors="replace", timeout=3600, cwd=root, env=env)
         if r.returncode != 0:
             raise EngineError("SadTalker 推理失败: %s" % (r.stderr or r.stdout)[-400:])
-        # result_dir 下的 mp4 找最新，改名到 out_path
-        cand = [f for f in glob.glob(os.path.join(out_dir, "*.mp4"))
-                if not f.endswith(out_path)]
-        cand = [f for f in glob.glob(os.path.join(out_dir, "**", "*.mp4"), recursive=True)]
-        if not cand:
-            raise EngineError("SadTalker 未产出视频")
-        latest = max(cand, key=os.path.getmtime)
+        # result_dir 下递归找本次运行新产出的 mp4（上一次的旧文件不算成果），改名到 out_path
+        fresh = [f for f in glob.glob(os.path.join(out_dir, "**", "*.mp4"), recursive=True)
+                 if os.path.abspath(f) != os.path.abspath(out_path)
+                 and os.path.getmtime(f) >= started - 2]
+        if not fresh:
+            raise EngineError("SadTalker 未产出视频（result_dir 里没有本次新生成的 mp4）")
+        # SadTalker 的成品在 .../final/ 子目录，中途产物在 .../temp/，优先取 final
+        latest = max([f for f in fresh if os.sep + "final" in f] or fresh, key=os.path.getmtime)
         if os.path.abspath(latest) != os.path.abspath(out_path):
             os.replace(latest, out_path)
         return out_path

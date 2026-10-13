@@ -54,7 +54,9 @@
 **选型建议**：
 
 - **个人 / 小团队 / 不想花钱**：先用 `lightweight` 引擎（无 GPU、无模型下载）跑通全链路；有能力再切 `liveportrait` 或 `sadtalker`。
-- **要效果且接受付费**：接 `cloud` 引擎，填自己的 Azure / 腾讯云 key。
+- **要效果且接受付费**：`cloud` 引擎目前只有**桥接骨架**（配置读取 + provider 分发已就位，
+  submit/poll/download 三步还没接各家 SDK）。填了 key 后 `dh_status()` 会直说「桥接未接入」，
+  要商用云效果需自行在 `engines/cloud_engine.py` 补三家分支。
 - **避免 Wav2Lip 做任何商用产品**——License 风险大。
 
 ## 模块拆分 / 卸载步骤
@@ -144,11 +146,13 @@ cloud       : no config set
 - 输出：说话人脸 MP4
 - 需要：PyTorch、官方 checkpoint
 
-### cloud（商用效果首选）
+### cloud（商用效果首选，**桥接待接入**）
 
 - 输入：1 张照片（或形象 ID）+ 1 段文本（云端 TTS + 数字人合成一体）
 - 输出：云端生成的 MP4 URL → 下载落 `assets/`
-- 需要：`dh/cloud_config.json`（复制 `cloud_config.example.json` 填入自己的 key）
+- 需要：`dh/cloud_config.json`（复制 `cloud_config.example.json` 填入自己的 key），
+  并在 `_azure` / `_tencent` / `_aliyun` 三个方法里按各家 SDK 补 submit → poll → download（约 30 行/家）
+- 现状：三家分支都会抛「未接入」的 `EngineError`，`check()` 也不会回报 `ok`——**不会假装能跑**
 
 ## Python API
 
@@ -161,22 +165,26 @@ from noedit_core.dh import generator
 out = generator.generate(
     image=r"D:\pics\host.png",          # 真人照片
     audio=r"D:\tts\p1.wav",             # 讲稿音频
-    engine="auto",                      # auto: 依序探测 liveportrait → sadtalker → lightweight
+    engine="auto",                      # auto: 依序探测 liveportrait → sadtalker → lightweight，
+                                        #       某档运行期崩了会自动降级到下一档（见返回的 tried / note）
     out_dir=r"D:\out",                  # 输出目录
+    poster=True,                        # 顺带从成片抽一张封面帧 JPG（PPTX / PDF 就靠它）
 )
-print(out["video"])                      # -> D:\out\host_p1.mp4
+print(out["video"], out["poster"], out["engine"])   # -> D:\out\host_p1.mp4  D:\out\host_p1_poster.jpg  lightweight
 
 # 2. 落进工程并插入页面
 from noedit_core import api
 P = api.create_project("带数字人的PPT", r"D:\work")["path"]
-rec = api.import_asset(P, [out["video"]])["imported"][0]
+rec = api.import_asset(P, [out["video"]] + ([out["poster"]] if out["poster"] else []))
+vid = rec["imported"][0]["relPath"]
+poster = next((a["relPath"] for a in rec["imported"] if a["relPath"] != vid), "")
 api.insert(P, {
     "type": "digital_human",
     "name": "页1-数字人",
     "x": 880, "y": 400, "w": 360, "h": 300,   # 右下角，不压正文
     "props": {
-        "src": rec["relPath"],                # assets/host_p1.mp4
-        "poster": "",                          # 可选封面帧
+        "src": vid,                           # assets/host_p1.mp4
+        "poster": poster,                     # 封面帧图片；忘了就留空，再用 attach_dh_posters 补
         "autoplay": True, "loop": False,
         "controls": False, "muted": False,
         "volume": 1.0,
@@ -190,6 +198,14 @@ api.insert(P, {
 ```python
 from noedit_core.dh import validator
 print(validator.check_all())   # {'lightweight': 'ok', 'liveportrait': 'missing torch', ...}
+```
+
+**封面帧补救 + 导出前体检**（已经建好的工程忘了 poster、或 poster 误写成 mp4 时用）：
+
+```python
+from noedit_core import api
+print(api.attach_dh_posters(P))   # 从每个 digital_human / video 自己的 mp4 抽一帧，落 assets/ 并回写 props.poster
+print(api.check_media(P))         # 断图 / 外链 / poster 指向 mp4 都会点名到页 + 元素 + 属性
 ```
 
 ## 与 NoEdit Core 集成

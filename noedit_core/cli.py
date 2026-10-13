@@ -95,8 +95,20 @@ def build_parser() -> argparse.ArgumentParser:
     aa.add_argument("path")
     aa.add_argument("files", nargs="+")
 
+    au = sub.add_parser("asset-url", help="下载网络图片并落进工程 assets")
+    au.add_argument("path")
+    au.add_argument("url")
+    au.add_argument("--name", default="", help="落盘文件名（可无后缀）")
+
     al = sub.add_parser("assets", help="列出工程内素材")
     al.add_argument("path")
+
+    cm = sub.add_parser("media-check", help="导出前体检：断图 / 外链 / poster 指向视频")
+    cm.add_argument("path")
+
+    dp = sub.add_parser("dh-posters", help="给数字人 / 视频元素补封面帧")
+    dp.add_argument("path")
+    dp.add_argument("--force", action="store_true", help="已有封面帧也重抽")
 
     ex = sub.add_parser("export", help="导出")
     ex.add_argument("path")
@@ -195,8 +207,14 @@ def main(argv: list[str] | None = None) -> int:
                               page_index=args.page))
         elif args.cmd == "asset-add":
             _dump(api.import_asset(args.path, args.files))
+        elif args.cmd == "asset-url":
+            _dump(api.import_asset_url(args.path, args.url, args.name))
         elif args.cmd == "assets":
             _dump(api.list_assets(args.path))
+        elif args.cmd == "media-check":
+            _dump(api.check_media(args.path))
+        elif args.cmd == "dh-posters":
+            _dump(api.attach_dh_posters(args.path, force=args.force))
         elif args.cmd == "export":
             opts = {}
             if args.fmt in ("png", "svg"):

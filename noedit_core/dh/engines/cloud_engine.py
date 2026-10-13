@@ -44,7 +44,10 @@ class CloudEngine(Engine):
             return "no config set (copy cloud_config.example.json -> cloud_config.json)"
         if not cfg.get("provider"):
             return "config missing provider"
-        return "ok"
+        # 三家 provider 的 submit/poll/download 还没落地，这里就不回报 'ok'：
+        # 否则 dh_status 一片绿、调用即报错，比直接说清楚更坑。
+        return ("配置就绪，但 %s 桥接未接入（在 cloud_engine.py::_%s 补 submit/poll/download）"
+                % (cfg["provider"], cfg["provider"]))
 
     def generate(self, image: str, audio: str, out_path: str, **kw) -> str:
         status = self.check()

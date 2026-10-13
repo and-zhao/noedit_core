@@ -1,6 +1,8 @@
 # 图片插入工作流（搜图 / 生图 → 落入工程 → 插入页面）
 
-本文件给**自带 `image_search` / `image_generation` 工具的 Agent** 用：明确什么时候该配图、怎么调用工具、怎么把结果安全地落进 NoEdit Core 工程。
+本文件给**有出图能力的 Agent** 用：明确什么时候该配图、怎么调用工具、怎么把结果安全地落进 NoEdit Core 工程。
+出图工具在不同环境里名字不同（`image_search` / `image_generation` / `ImageGen` / 文生图 / 画图插件 / 只有联网搜索），
+**有哪个用哪个**；只有搜索没有专用搜图工具时，用搜索拿到图片直链后走 `api.import_asset_url`。
 
 ## 核心约束
 
@@ -11,7 +13,7 @@
 
 ## 什么时候必须主动用搜图 / 生图
 
-在阶段 0（侦察 + 材料就绪）列出每页配图需求，只要满足以下任一条件，**且环境提供了对应工具，就必须主动调用**：
+在阶段 0（侦察 + 材料就绪）列出每页配图需求，只要满足以下任一条件，**且环境有任何出图手段（生图工具、搜图工具、或能联网搜到图片直链），就必须主动去拿图**：
 
 - 封面需要主视觉 / 氛围图；
 - 内容页需要真实场景、产品外观、人物、材质、风景等「照片感」内容；
@@ -20,7 +22,7 @@
 
 不要等用户催。没有工具或工具失败时，**立即退回图槽位**。
 
-## 标准动作（六步）
+## 标准动作（七步）
 
 ### 1. 判断配图位置与数量
 
@@ -34,9 +36,17 @@
 
 **一页最多 1 张主图**，避免照片喧宾夺主。
 
-### 2. 搜图（优先尝试）
+### 2. 搜图（要真实场景 / 产品 / 人物时优先）
 
-调用工具：`image_search`
+有专用搜图工具就用；没有就用联网搜索找到**图片直链**，然后：
+
+```python
+rec = api.import_asset_url(path, "https://.../robot-arm.jpg", "机械臂实景")
+```
+
+`import_asset_url` 会做四件事，别自己手写下载：带浏览器 UA（图床对裸 UA 常回 403）、
+超时 20s + 退避重试 3 次、按文件头复核确实是图片（跳转页 / 防盗链 HTML 会当场报错，
+不会留下一张打不开的假素材）、单个文件上限 25 MB。失败抛 `CoreError` 并写明原因。
 
 关键词公式：
 
@@ -55,11 +65,12 @@ clean background, dark blue and orange accents, high quality, no text
 - 无水印、无截图边框、无奇怪留白；
 - 没有乱码文字、数字、字母；
 - 色调贴合 6 色 token；
-- 商用 / 对外交付时注意版权。
+- **短边 ≥ 版面显示尺寸**（`check_media` 会把缩略图尺寸的图点出来）；
+- 商用 / 对外交付时注意版权——拿不准就改用生图。
 
-### 3. 生图（搜不到或需特定氛围时用）
+### 3. 生图（搜不到、需特定氛围、或要避版权时用）
 
-调用工具：`image_generation`
+调用环境的生图能力（工具名各环境不同：`image_generation` / `ImageGen` / 文生图……）。
 
 提示词公式：
 
@@ -76,6 +87,12 @@ dark blue and orange accents, soft lighting, no text, no letters,
 no numbers, no watermark, no UI elements, no screenshot borders
 ```
 
+**尺寸按版面选**：主视觉 / 满幅背景取横图（16:9 或 3:2），窄栏配图取竖图，
+别拿 1:1 去铺横条（`fit:cover` 会裁掉大半画面）。
+
+**生完必须回读再导入**：用环境的读图能力看一眼这个文件，确认主体正确、没糊、没夹带文字 / 水印。
+工具返回的路径**立刻** `import_asset` 导入，不要假设它下一轮还在原地、或文件名还是那个。
+
 ### 4. 落入工程
 
 #### 拿到文件路径
@@ -83,12 +100,18 @@ no numbers, no watermark, no UI elements, no screenshot borders
 ```python
 rec = api.import_asset(path, [r"D:\pics\cover_bg.png"])["imported"][0]
 print(rec)
-# {"name":"cover_bg.png","relPath":"assets/cover_bg.png", ...}
+# {"name":"cover_bg.png","relPath":"assets/cover_bg.png","kind":"image","width":1024,"height":683,...}
+# 同批还有 "problems": [{"source": "...", "reason": "文件不存在或不是文件", "imported": false}, ...]
 ```
+
+**`problems` 不是可选阅读项**：`imported: false` 表示这张图根本没进工程——页面照做的话，成品里就是
+一块空白。看到就当场处理：改对路径重导 / 换一张 / 实在没有就退回图槽位。**同一张图最多重试 2 次**，
+别把整份稿子卡在一张图上。
 
 #### 拿到 dataURL / URL / 字节
 
-通过 UI 通道上传（POST `/api/call`）：
+- 拿到的是**网络图片直链** → `api.import_asset_url(path, url, filename)`（自带重试与图片头复核，别手写下载）；
+- 拿到 **dataURL / 字节** → 走 UI 通道上传（POST `/api/call`）：
 
 ```json
 {
@@ -134,7 +157,7 @@ api.update_page(path, {
 
 ### 6. 失败 fallback
 
-如果 `image_search` / `image_generation` 返回失败、结果不可用、或工具不存在，**立刻退回图槽位**：
+如果搜图 / 生图返回失败、结果不可用、或环境根本没有这类工具，**立刻退回图槽位**：
 
 ```python
 api.insert(path, {
@@ -155,12 +178,28 @@ api.insert(path, {
 
 将来替换时，只改 `props.src` 与 `fit`。
 
+### 7. 导出前体检
+
+```python
+c = api.check_media(path)
+# {"ok": false, "refs": 12, "problems": [{"page":0,"element":"封面-主视觉","prop":"src",
+#   "value":"assets/cover_bg.png","problem":"素材文件不存在（assets/cover_bg.png）"}, ...]}
+```
+
+`problems` 会把这几类问题按页 / 元素 / 属性点名：文件不在盘上、`props.src` 写了 http(s) 外链或工程外
+绝对路径、没落在 `assets/` 下、图片解不开、尺寸像是缩略图、数字人 / 视频的 `poster` 指向 mp4。
+**`ok=False` 就别导出**：补图、`attach_dh_posters` 补封面帧，或换成图槽位。漏网的断图在这一步会被抓住，
+不用靠肉眼翻页面。
+
 ## 常见反面模式
 
-- ❌ 拿 `image_generation` 画流程图、架构图、数据图；
+- ❌ 拿生图画流程图、架构图、数据图；
 - ❌ 让生图写中文 / 数字 / 字母；
 - ❌ `props.src` 写成 `https://...` 外链；
 - ❌ 拿到搜图/生图结果不检查水印、截图边框、乱码文字；
+- ❌ **生完图不回读、导入后不看 `problems` 就继续排版**（成品少图多半就是这么来的）；
+- ❌ 手写 `requests` / `curl` 下载搜来的图还不校验内容，把 403 页面当成图存进 `assets/`（用 `import_asset_url`）；
+- ❌ 同一张图反复重试、或整页配图全靠一张图，卡死在一处（重试上限 2 次，然后走图槽位）；
 - ❌ 一页塞多张照片，导致版面散掉；
 - ❌ 搜图/生图失败后硬等或空着，不留图槽位。
 

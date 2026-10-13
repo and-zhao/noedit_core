@@ -1210,7 +1210,7 @@ def _el_image(el: dict, props: dict, style: str, root_prefix: str) -> str:
     radius_css = f"border-radius:{_fmt_num(radius)}px;" if radius else ""
     img_src = _ESC(root_prefix + src)
     img_style = f"width:100%;height:100%;object-fit:{_ESC(fit)};display:block;{radius_css}{img_extra}"
-    block = f'<img src="{img_src}" style="{img_style}"/>'
+    block = f'<img src="{img_src}" alt="{_ESC(el.get("name") or "")}" style="{img_style}"/>'
 
     # 裁剪：外框裁掉溢出，img 放大并偏移，只露出要保留的那块（四边按百分比）
     ct, cb = _crop_frac(props.get("cropTop")), _crop_frac(props.get("cropBottom"))
@@ -1253,6 +1253,7 @@ def _el_image(el: dict, props: dict, style: str, root_prefix: str) -> str:
                 f'-webkit-mask-image:{mask};mask-image:{mask}">'
                 f'<div style="width:100%;height:{_fmt_num(h)}px;transform:scaleY(-1)">{block}</div></div>'
             )
+    out += "</div>"
     return f'<div class="el" style="{style}">{out}</div>'
 
 

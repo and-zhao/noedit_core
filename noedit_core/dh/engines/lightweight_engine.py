@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import tempfile
 
+from ..media import ffmpeg_exe as _ffmpeg_exe, probe_seconds as _probe_seconds
 from .base import Engine, EngineError
 
 
@@ -23,51 +24,8 @@ def _has(module: str) -> bool:
         return False
 
 
-def _ffmpeg_exe() -> str:
-    """优先系统 ffmpeg；没有则用 imageio-ffmpeg 捆绑二进制；都没有返回空串。"""
-    exe = shutil.which("ffmpeg")
-    if exe:
-        return exe
-    try:
-        import imageio_ffmpeg
-        return imageio_ffmpeg.get_ffmpeg_exe()
-    except Exception:
-        return ""
-
-
-def _ffprobe_seconds(audio: str, ffmpeg_exe: str) -> float:
-    """用 ffmpeg 自带探测拿音频时长（兼容无独立 ffprobe 的捆绑版）。"""
-    if not ffmpeg_exe:
-        return 0.0
-    try:
-        out = subprocess.run(
-            [ffmpeg_exe, "-hide_banner", "-i", audio],
-            capture_output=True, text=True, timeout=30,
-        )
-        # 在 stderr 里找 "Duration: 00:00:12.34"
-        import re
-        m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", out.stderr)
-        if m:
-            return int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
-    except Exception:
-        pass
-    return 0.0
-
-
 def _probe_audio_seconds(audio: str) -> float:
-    """探音频时长：优先系统 ffprobe，退回 ffmpeg 解析。"""
-    probe = shutil.which("ffprobe")
-    if probe:
-        try:
-            out = subprocess.run(
-                [probe, "-v", "error", "-show_entries", "format=duration",
-                 "-of", "default=nw=1:nk=1", audio],
-                capture_output=True, text=True, timeout=30,
-            )
-            return float(out.stdout.strip())
-        except Exception:
-            pass
-    return _ffprobe_seconds(audio, _ffmpeg_exe())
+    return _probe_seconds(audio, _ffmpeg_exe())
 
 
 class LightweightEngine(Engine):
@@ -92,7 +50,14 @@ class LightweightEngine(Engine):
         w = int(kw.get("width", 480))
         # 高按原图比例算，限制在 480~720
         base = Image.open(image).convert("RGB")
-        h = max(480, min(720, int(base.height * w / base.width)))
+        h = max(480, min(720, int(base.height * w / max(1, base.width))))
+        # libx264 + yuv420p 只接受偶数边长，奇数会让 ffmpeg 直接失败
+        w -= w % 2
+        h -= h % 2
+        # 长讲稿按帧数上限降 fps，避免几上千张 PNG 把磁盘和时间吃掉
+        max_frames = int(kw.get("max_frames", 1800))
+        if duration * fps > max_frames:
+            fps = max(5, int(max_frames / max(duration, 0.1)))
         nframes = max(1, int(duration * fps))
 
         tmp = tempfile.mkdtemp(prefix="dh_light_")
@@ -118,7 +83,8 @@ class LightweightEngine(Engine):
                    "-c:v", "libx264", "-pix_fmt", "yuv420p",
                    "-c:a", "aac", "-shortest",
                    "-movflags", "+faststart", out_path]
-            r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            r = subprocess.run(cmd, capture_output=True, text=True,
+                   encoding="utf-8", errors="replace", timeout=600)
             if r.returncode != 0 or not os.path.exists(out_path):
                 raise EngineError("ffmpeg 合成失败: %s" % r.stderr[-400:])
             return out_path
