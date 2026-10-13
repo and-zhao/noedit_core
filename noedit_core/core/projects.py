@@ -1210,7 +1210,7 @@ def _el_image(el: dict, props: dict, style: str, root_prefix: str) -> str:
     radius_css = f"border-radius:{_fmt_num(radius)}px;" if radius else ""
     img_src = _ESC(root_prefix + src)
     img_style = f"width:100%;height:100%;object-fit:{_ESC(fit)};display:block;{radius_css}{img_extra}"
-    block = f'<img src="{img_src}" style="{img_style}"/>'
+    block = f'<img src="{img_src}" alt="{_ESC(el.get("name") or "")}" style="{img_style}"/>'
 
     # 裁剪：外框裁掉溢出，img 放大并偏移，只露出要保留的那块（四边按百分比）
     ct, cb = _crop_frac(props.get("cropTop")), _crop_frac(props.get("cropBottom"))
@@ -1253,6 +1253,7 @@ def _el_image(el: dict, props: dict, style: str, root_prefix: str) -> str:
                 f'-webkit-mask-image:{mask};mask-image:{mask}">'
                 f'<div style="width:100%;height:{_fmt_num(h)}px;transform:scaleY(-1)">{block}</div></div>'
             )
+    out += "</div>"
     return f'<div class="el" style="{style}">{out}</div>'
 
 
@@ -1295,6 +1296,78 @@ def _el_video(el: dict, props: dict, style: str, root_prefix: str) -> str:
         f'{" muted" if props.get("muted", True) is not False else ""} playsinline'
         f'{_media_play_attrs(props)} '
         f'style="width:100%;height:100%;object-fit:{_ESC(props.get("fit") or "fill")};background:#000;"></video></div>'
+    )
+
+
+def _el_audio(el: dict, props: dict, style: str, root_prefix: str) -> str:
+    """音频：一条可播放的音频条（静态格式里也有形可看）。
+
+    <audio> 藏在条里，播放参数落在 data-ac-* 上由 _AUDIO_RUNTIME 落地；
+    PDF / PNG / SVG 打印时就是一个「喇叭图标 + 名字」的胶囊条，不破版面。
+    """
+    src = str(props.get("src") or "")
+    title = str(props.get("title") or "").strip()
+    if not title and src:
+        title = re.split(r"[\\/]", src)[-1]
+    if not title:
+        title = "音频"
+    start = max(0.0, _num(props.get("startAt")))
+    volume = min(1.0, max(0.0, _num(props.get("volume"), 1)))
+    controls = props.get("controls", True) is not False
+    autoplay = "1" if props.get("autoplay", True) is not False else "0"
+    loop = "1" if props.get("loop") else "0"
+    return (
+        f'<div class="el el-audio" style="{style}"'
+        f' data-ac-audio="1" data-ac-start="{_fmt_num(start)}"'
+        f' data-ac-volume="{_fmt_num(volume)}" data-ac-autoplay="{autoplay}"'
+        f' data-ac-loop="{loop}"{" data-ac-noclick=\"1\"" if not controls else ""}'
+        f' title="{_ESC(title)}">'
+        f'<svg class="el-audio-ic" viewBox="0 0 24 24" aria-hidden="true">'
+        f'<path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05'
+        f'c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06'
+        f'c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>'
+        f'<span class="el-audio-name">{_ESC(title)}</span>'
+        f'<audio class="el-audio-el" src="{_ESC(root_prefix + src)}" preload="metadata"'
+        f'{" controls" if controls else ""}{" loop" if props.get("loop") else ""}></audio>'
+        f'</div>'
+    )
+
+
+def _el_digital_human(el: dict, props: dict, style: str, root_prefix: str) -> str:
+    """数字人：一段带声音的播报视频 + 可选底部名牌。
+
+    本质复用 <video> 渲染（剪辑 / 音量 / 封面帧语义一致），但：
+    - muted 默认 False（数字人要出声）；
+    - props.startAt = 进入该页后第几秒开始播（与 audio 的 startAt 同语义），
+      由 _DH_RUNTIME 用 IntersectionObserver 驱动（进视口延时起播、离视口暂停）；
+    - 底部一个「数字人 · 名字」小徽章（DH badge），打印 / 截图时也能看出这是数字人。
+    """
+    src = str(props.get("src") or "")
+    poster = str(props.get("poster") or "")
+    poster_attr = ""
+    if poster:
+        poster_url = poster if poster.startswith("data:") else root_prefix + poster
+        poster_attr = f' poster="{_ESC(poster_url)}"'
+    title = str(props.get("title") or "").strip() or "数字人"
+    start_at = max(0.0, _num(props.get("startAt")))
+    autoplay = "1" if props.get("autoplay", True) is not False else "0"
+    controls = props.get("controls", False) is not False
+    badge = "" if props.get("hideBadge") else (
+        f'<div class="el-dh-badge"><span class="el-dh-dot"></span>'
+        f'{_ESC(title)}</div>'
+    )
+    return (
+        f'<div class="el el-dh" style="{style}"'
+        f' data-ac-dh="1" data-ac-pagestart="{_fmt_num(start_at)}"'
+        f' data-ac-autoplay="{autoplay}"'
+        f' title="{_ESC(title)}">'
+        f'<video src="{_ESC(root_prefix + src)}"{poster_attr}'
+        f'{" controls" if controls else ""}'
+        f'{" loop" if props.get("loop") else ""}'
+        f' playsinline preload="metadata"'
+        f'{_media_play_attrs(props)} '
+        f'style="width:100%;height:100%;object-fit:{_ESC(props.get("fit") or "cover")};background:#000;"></video>'
+        f'{badge}</div>'
     )
 
 
@@ -1395,6 +1468,77 @@ _VIDEO_RUNTIME = """
       if (hideIdle) v.style.visibility = 'hidden';
     });
   })(list[i]);
+})();
+"""
+
+
+# 静态 HTML 里的音频：按「页面进入视口」驱动播放——进入该页后 data-ac-start 秒开始，
+# 离开视口暂停；无原生控制条时点整条切换播放/暂停。与 UI 画布同语义。
+_AUDIO_RUNTIME = """
+(function () {
+  function num(el, key, d) { var v = parseFloat(el.getAttribute(key)); return isNaN(v) ? d : v; }
+  function bind(host) {
+    var audio = host.querySelector('audio');
+    if (!audio) return;
+    try { audio.volume = Math.max(0, Math.min(1, num(host, 'data-ac-volume', 1))); } catch (e) { }
+    var start = Math.max(0, num(host, 'data-ac-start', 0));
+    var auto = host.getAttribute('data-ac-autoplay') !== '0';
+    var timer = null, armed = false;
+    function play() { try { audio.play(); } catch (e) { } }
+    function enter() {
+      if (!auto) return;
+      if (!armed) { armed = true; timer = setTimeout(play, start * 1000); }
+    }
+    function leave() {
+      if (timer) { clearTimeout(timer); timer = null; armed = false; }
+      if (!audio.paused) audio.pause();
+    }
+    var page = host.closest('.page') || host;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { enter(); } else { leave(); } });
+      }, { threshold: page === host ? 0.5 : 0.3 }).observe(page);
+    } else if (auto) { play(); }
+    if (host.getAttribute('data-ac-noclick') === '1') {
+      host.style.cursor = 'pointer';
+      host.addEventListener('click', function () { audio.paused ? play() : audio.pause(); });
+    }
+  }
+  var list = document.querySelectorAll('[data-ac-audio]');
+  for (var i = 0; i < list.length; i++) bind(list[i]);
+})();
+"""
+
+
+# 静态 HTML 里的数字人：页面进入视口后 data-ac-pagestart 秒开始播报，离开视口暂停并复位。
+# 与 audio 的 startAt 同语义（data-ac-pagestart），但操作对象是带声音的 <video>。
+_DH_RUNTIME = """
+(function () {
+  function num(el, key, d) { var v = parseFloat(el.getAttribute(key)); return isNaN(v) ? d : v; }
+  function bind(host) {
+    var video = host.querySelector('video');
+    if (!video) return;
+    var delay = Math.max(0, num(host, 'data-ac-pagestart', 0));
+    var auto = host.getAttribute('data-ac-autoplay') !== '0';
+    var timer = null, armed = false;
+    function play() { try { var p = video.play(); if (p && p.catch) p.catch(function () { }); } catch (e) { } }
+    function enter() {
+      if (!auto) return;
+      if (!armed) { armed = true; timer = setTimeout(play, delay * 1000); }
+    }
+    function leave() {
+      if (timer) { clearTimeout(timer); timer = null; armed = false; }
+      if (!video.paused) video.pause();
+    }
+    var page = host.closest('.page') || host;
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { enter(); } else { leave(); } });
+      }, { threshold: page === host ? 0.5 : 0.3 }).observe(page);
+    } else if (auto) { play(); }
+  }
+  var list = document.querySelectorAll('[data-ac-dh]');
+  for (var i = 0; i < list.length; i++) bind(list[i]);
 })();
 """
 
@@ -1511,6 +1655,8 @@ _ELEMENT_HTML = {
     "text": _el_text,
     "image": _el_image,
     "video": _el_video,
+    "audio": _el_audio,
+    "digital_human": _el_digital_human,
     "link": _el_link,
     "table": _el_table,
     "code": _el_code,
@@ -1814,6 +1960,27 @@ body { margin:0; background:#8a8a8a; font-family:"Microsoft YaHei","PingFang SC"
 .page { position:relative; overflow:hidden; margin:0 auto 24px auto; background:#fff; page-break-after: always; }
 .el-text { white-space:pre-wrap; word-break:break-word; }
 .el-scene { overflow:hidden; }
+.el-audio { display:flex; align-items:center; gap:10px; padding:0 16px; overflow:hidden; color:inherit; }
+.el-audio-ic { flex:0 0 20px; width:20px; height:20px; opacity:.85; }
+.el-audio-name { flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+.el-audio-el { flex:1 1 auto; min-width:56px; height:28px; }
+@media print { .el-audio-el { display:none; } }
+.el-dh { overflow:hidden; }
+.el-dh-badge {
+  position:absolute; left:10px; bottom:10px; z-index:2;
+  display:flex; align-items:center; gap:6px;
+  background:rgba(10,16,26,0.62); color:#EAF0F7;
+  font-size:12px; line-height:1; padding:6px 12px;
+  border-radius:999px; white-space:nowrap;
+  backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  border:1px solid rgba(255,255,255,0.14);
+}
+.el-dh-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:#36CFC9; box-shadow:0 0 6px #36CFC9;
+  animation:dh-pulse 1.6s ease-in-out infinite;
+}
+@keyframes dh-pulse { 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.35; transform:scale(.72);} }
 a { color:#1a73e8; }
 """
 
@@ -1846,11 +2013,15 @@ def render_static_html(manifest: dict, root_prefix: str = "") -> str:
     body = "\n".join(pages_html)
     # 有视频才注入播放脚本（音量 / 剪辑起止 / 播完返回开头 / 未播放时隐藏要靠它落地）
     video_script = f"<script>{_VIDEO_RUNTIME}{_SCRIPT_CLOSE}" if "data-ac-video" in body else ""
+    # 有音频才注入播放脚本（进视口自动播 / 页内开始秒 / 音量 / 点击切换）
+    audio_script = f"<script>{_AUDIO_RUNTIME}{_SCRIPT_CLOSE}" if "data-ac-audio" in body else ""
+    # 有数字人才注入播报脚本（进视口延时起播 / 离视口暂停复位）
+    dh_script = f"<script>{_DH_RUNTIME}{_SCRIPT_CLOSE}" if "data-ac-dh" in body else ""
     return (
         "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"utf-8\"/>\n"
         f"<title>{title}</title>\n<style>{css}</style>\n{_render_kit_script()}\n</head>\n<body>\n"
         + body
-        + f"\n{play_btn}\n{anim_script}\n{video_script}\n</body>\n</html>\n"
+        + f"\n{play_btn}\n{anim_script}\n{video_script}\n{audio_script}\n{dh_script}\n</body>\n</html>\n"
     )
 
 

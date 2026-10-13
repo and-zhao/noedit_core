@@ -68,13 +68,17 @@
 
 **スコープ**：プロジェクトの読み書き、ページと要素の追加・変更・削除、20 種のグラフ、ベクター図形（shape / path / connector）、
 **内蔵のベクターアイコンライブラリ**（1800+ アイコン。検索して挿入すると編集可能な `path` 要素になる）、表 / コード / 数式、
+音声（ナレーション / BGM —— `audio` 要素。書き出した HTML は実際に再生され、PPTX には本物の音声トラックが埋め込まれ、ローカル UI にはドラッグ可能なオーディオトラックパネルがあります）、
+デジタルヒューマン（**オプションの分割可能モジュール** `noedit_core/dh/` —— 写真 + ナレーション音声から話者動画を生成し、`digital_human` 要素として挿入。オープンソースエンジン LivePortrait / SadTalker（MIT）、依存ゼロの lightweight フォールバック、有償クラウド API の 3 方式。書き出しダイアログで「通常 / 音声 / デジタルヒューマン」モードを選択。ライセンス対比と分割/アンインストール手順は `noedit_core/dh/README.md`）、
 プロジェクト内ローカル素材、5 種類の書き出し形式、そして**内蔵のブラウザエディタ**（ローカルでサーバーを起動し、ブラウザで開くだけで
 プレビューと、要素を選んでのプロパティ編集ができる）。要素アニメーション（`anim`）とマイクロシーン（`scene`）——
 **HTML は必ず動く。PPTX でもマイクロシーンは動く**（コアが自動でフレームを取り込み GIF を埋め込む）。PDF / PNG / SVG は静止フレームになります。
 
 **含まれないもの**：AI によるコンテンツの自動生成（シーンコード / カバーフレームを含む）、グローバル素材ライブラリ、テンプレート、
 スクリーンショット検証、デスクトップクライアント。（マイクロシーンで使う内蔵 JS ライブラリは、必要に応じて**ネットワークから
-ローカルキャッシュへダウンロード**して使います。`install_scene_lib` を参照。）
+ローカルキャッシュへダウンロード**して使います。`install_scene_lib` を参照。コア自体は画像も生成しませんが、
+エージェントが画像検索 / 画像生成ツールを持っていれば、skill がそれを積極的に活用して「写真感」のある素材を作成し
+プロジェクトへ取り込みます。[references/image-workflow.md](skill/references/image-workflow.md) を参照。）
 
 ## デモ
 
@@ -174,6 +178,7 @@ noedit_core/
 │  └─ core/                # コア実装：projects / export / actions / element_schema /
 │                          #   assets / icon_catalog / shape_outline / connector_geom / store ...
 │  └─ web/                 # レンダリング時の資産：element-schema.json、icon-catalog*.json、render-kit、katex
+│  └─ dh/                  # オプションのデジタルヒューマンモジュール（分割可能：lightweight / liveportrait / sadtalker / cloud）
 ├─ skill/                  # Agent Skill：このコアの使い方（SKILL.md + references/）
 └─ tests/smoke.py          # エンドツーエンドのスモークテスト
 ```
@@ -321,6 +326,9 @@ api.export(path, "pptx")
 - [sci-vector-drawing.md](skill/references/sci-vector-drawing.md) — 科学図とベクター描画のハードルール
 - [vector-playbook.md](skill/references/vector-playbook.md) — ベクター機能の実践ガイド
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — 分野横断の原理図アトラス
+- [image-workflow.md](skill/references/image-workflow.md) — 画像挿入ワークフロー（画像検索 / 生成 → `assets/` へ取り込み → ページへ配置）
+- [audio-workflow.md](skill/references/audio-workflow.md) — 音声挿入ワークフロー（TTS 合成 / ローカル素材 → `assets/` へ取り込み → ページへ配置）
+- [digital-human-workflow.md](skill/references/digital-human-workflow.md) — デジタルヒューマン挿入ワークフロー（写真 + ナレーション → dh モジュールで生成 → `assets/` へ取り込み → ページへ配置。エンジン選択とライセンス注意点つき）
 
 ## Agent Skill として使う
 
@@ -355,11 +363,12 @@ python packaging/build_skill.py     # dist/noedit-core/ と dist/noedit-core-ski
 フォルダは skill フォルダの**隣**に作られます。`NOEDIT_CORE_ROOT` / `NOEDIT_CORE_PROJECTS` で上書きできます。
 
 **使い方** —— インストール後は、エージェントに要望を伝えるだけです（例：「X についての 10 ページの PPT を作って pptx で書き出して」）。
-エージェントは [`skill/SKILL.md`](skill/SKILL.md) に従って進めます。要点は 3 つ：
+エージェントは [`skill/SKILL.md`](skill/SKILL.md) に従って進めます。要点は 4 つ：
 
 1. **書くのはエージェント自身** — コアはコンテンツを生成しません。要素 JSON はエージェントが書きます。
 2. **「動く」もの：HTML は必ず動き、PPTX ではマイクロシーンも動く** — 要素アニメーション（`anim`）とマイクロシーン（`scene`）は HTML 書き出しで動作します。PPTX ではマイクロシーンをコアが自動でフレーム合成し GIF を埋め込みます。PDF / PNG / SVG は静止フレーム（マイクロシーンは `props.poster` を使用）。
 3. **素材はプロジェクト内のローカルコピーのみ** — `import_asset` の後、`relPath` を `props.src` に書き込めば、プロジェクトフォルダごと持ち運べます。
+4. **エージェントが画像検索 / 画像生成ツールを持っていれば積極的に使う** — カバー用ビジュアルや実写系の「写真感」素材は、検索 / 生成したうえで `import_asset` / `upload_asset` により `assets/` へ取り込んでから参照します。構成図・原理図・フローチャートは引き続きベクター必須。詳細は `SKILL.md` の「图片策略」節と [references/image-workflow.md](skill/references/image-workflow.md) を参照。
 
 ## セルフテスト
 

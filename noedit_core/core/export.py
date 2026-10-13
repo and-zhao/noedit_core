@@ -2680,6 +2680,10 @@ def _vector_ok(el: dict) -> bool:
         )
     if etype == "video":
         return True   # 幻灯片里嵌真视频（封面帧当海报）
+    if etype == "audio":
+        return True   # 幻灯片里嵌真音轨（音频条当海报）
+    if etype == "digital_human":
+        return True   # 幻灯片里嵌真数字人视频（封面帧 + 名牌当海报）
     if etype == "scene":
         return True   # PPTX 里换成 GIF 动图 / 封面帧静图
     if etype == "connector":
@@ -3168,6 +3172,19 @@ def _apply_video_trim(frame, props: dict, warnings: list, name: str) -> None:
     media14.insert(0, trim)
 
 
+def _pptx_dh(slide, el: dict, root: Path, warnings: list) -> None:
+    """数字人：复用视频嵌入链路（add_movie 真视频），但强制有声（mute=0）。
+
+    props.startAt / autoplay / loop / 剪辑起止与视频语义一致；放映前显示
+    poster 封面帧（有名牌更好看，没有也有深色兜底图）。
+    """
+    props = dict(el.get("props") or {})
+    props["muted"] = False          # 数字人默认出声（video 默认静音）
+    props.setdefault("controls", True)
+    name = str(el.get("name") or "数字人")
+    _pptx_video(slide, {**el, "name": name, "props": props}, root, warnings)
+
+
 def _pptx_video(slide, el: dict, root: Path, warnings: list) -> None:
     """视频：用 python-pptx 的 add_movie 把真视频嵌进 PPTX，PowerPoint 里能直接播。
 
@@ -3206,6 +3223,98 @@ def _pptx_video(slide, el: dict, root: Path, warnings: list) -> None:
         return
     _apply_video_playback(frame, props)
     _apply_video_trim(frame, props, warnings, name)
+
+
+_AUDIO_MIME = {
+    ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4",
+    ".aac": "audio/aac", ".flac": "audio/flac", ".ogg": "audio/ogg",
+    ".oga": "audio/ogg", ".opus": "audio/ogg", ".weba": "audio/webm",
+}
+
+
+def _audio_poster(el: dict, props: dict):
+    """音频在幻灯片上的「样子」：胶囊条 + 喇叭图形 + 名字（Pillow 不在就返回 None 用默认海报）。
+
+    add_movie 嵌进去的是真音轨，放映能播；不播的时候看到的就是这张条。
+    """
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        return None
+    w = max(120, int(_num(el.get("w"), 320)))
+    h = max(36, int(_num(el.get("h"), 72)))
+    style = el.get("style") or {}
+    bg = str(style.get("background") or "#16283F").lstrip("#")
+    bg = bg if len(bg) == 6 else "16283F"
+    fg = str(style.get("color") or "#D7DEE8").lstrip("#")
+    fg = fg if len(fg) == 6 else "D7DEE8"
+    img = Image.new("RGB", (w * 2, h * 2), tuple(int(bg[i:i + 2], 16) for i in (0, 2, 4)))
+    draw = ImageDraw.Draw(img)
+    fg_rgb = tuple(int(fg[i:i + 2], 16) for i in (0, 2, 4))
+    # 喇叭：矩形 + 三角 + 两道弧（近似画弧线段）
+    bx, by = 26, h  # 纵向居中
+    draw.rectangle([bx, by - 8, bx + 10, by + 8], fill=fg_rgb)
+    draw.polygon([(bx + 10, by - 14), (bx + 24, by - 26), (bx + 24, by + 26), (bx + 10, by + 14)], fill=fg_rgb)
+    for r in (10, 16):
+        draw.arc([bx + 24 - r, by - r, bx + 24 + r, by + r], -55, 55, fill=fg_rgb, width=3)
+    title = str(props.get("title") or "").strip()
+    if not title:
+        src = str(props.get("src") or "")
+        title = src.replace("\\", "/").split("/")[-1] if src else str(el.get("name") or "音频")
+    font = None
+    for cand in (r"C:\Windows\Fonts\msyh.ttc", r"C:\Windows\Fonts\simhei.ttf"):
+        try:
+            font = ImageFont.truetype(cand, h - 22)
+            break
+        except OSError:
+            continue
+    if font is not None:
+        try:
+            draw.text((bx + 52, h - font.size // 2 - 4), title[:24], fill=fg_rgb, font=font)
+        except (OSError, ValueError):
+            pass
+    img = img.resize((w, h), Image.LANCZOS)
+    stream = io.BytesIO()
+    img.save(stream, format="PNG")
+    stream.seek(0)
+    return stream
+
+
+def _pptx_audio(slide, el: dict, root: Path, warnings: list) -> None:
+    """音频：add_movie 嵌真音轨进 PPTX，PowerPoint 放映能直接播；海报帧是一条音频条。
+
+    音频元素的语义没有 muted（静音就没意义了），所以喂给 _apply_video_playback 前
+    显式关掉 mute，只让音量生效。
+    """
+    from pptx.util import Emu
+
+    props = el.get("props") or {}
+    name = str(el.get("name") or "音频")
+    src = str(props.get("src") or "")
+    box = (
+        Emu(int(_num(el.get("x")) * PX_TO_EMU)),
+        Emu(int(_num(el.get("y")) * PX_TO_EMU)),
+        Emu(int(_num(el.get("w"), 320) * PX_TO_EMU)),
+        Emu(int(_num(el.get("h"), 72) * PX_TO_EMU)),
+    )
+    path = (root / src).resolve() if src else None
+    if path is None or not path.is_file():
+        _video_placeholder(slide, el, f"[音频缺失] {name}")
+        warnings.append(f"{name}：音频文件不在，幻灯片上用占位框替代")
+        return
+    try:
+        frame = slide.shapes.add_movie(
+            str(path), *box,
+            poster_frame_image=_audio_poster(el, props),
+            mime_type=_AUDIO_MIME.get(path.suffix.lower(), "audio/mpeg"),
+        )
+    except Exception as exc:  # noqa: BLE001 —— 嵌入失败不该让整页导出挂掉
+        _video_placeholder(slide, el, f"[音频嵌入失败] {name}")
+        warnings.append(f"{name}：音频嵌入失败（{exc}），幻灯片上用占位框替代")
+        return
+    pb = dict(props)
+    pb["muted"] = False
+    _apply_video_playback(frame, pb)
 
 
 def _pptx_table(slide, el: dict, root: Path, warnings: list) -> None:
@@ -3290,6 +3399,8 @@ _PPTX_WRITERS = {
     "code": _pptx_code,
     "image": _pptx_image,
     "video": _pptx_video,
+    "audio": _pptx_audio,
+    "digital_human": _pptx_dh,
     "table": _pptx_table,
     "chart": _pptx_chart,
     "shape": _pptx_shape,

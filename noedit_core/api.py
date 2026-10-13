@@ -9,6 +9,9 @@
 from __future__ import annotations
 
 import copy
+import os
+import shutil
+import tempfile
 from pathlib import Path
 
 from .core import actions as act
@@ -45,7 +48,10 @@ __all__ = [
     "delete",
     "reorder",
     "import_asset",
+    "import_asset_url",
     "list_assets",
+    "check_media",
+    "attach_dh_posters",
     "export",
     "element_types",
     "icon_groups",
@@ -57,6 +63,8 @@ __all__ = [
     "remove_scene_lib",
     "compose_scene_gif",
     "export_scene_gif",
+    "dh_status",
+    "generate_digital_human",
 ]
 
 # ---------------------------------------------------------------- 工程
@@ -303,17 +311,44 @@ def import_asset(path: str, source_paths: list) -> dict:
 
     之后元素要用它，就把 props.src 写成这个 relPath（如 "assets/logo.png"）。
     这是**工程内本地素材**：随工程文件夹一起迁移，不依赖任何全局素材库。
+
+    返回 {"imported": [...], "problems": [...]}：problems 逐条写明哪个源文件没进来
+    （路径不存在 / 图片解不开 / 复制失败），或进来了但有隐患（缩略图尺寸）。
+    **看到 problems 非空就得处理**——换路径补导入，或按工作流退回图槽位，别当没事发生。
     """
     if not source_paths:
         raise CoreError("请给出要导入的文件路径 source_paths")
     root = project_root(path)
 
     def mut(manifest):
-        records = assets_mod.import_assets(root, list(source_paths))
+        records, problems = assets_mod.import_assets_report(root, list(source_paths))
         if not records:
-            raise CoreError("没有可导入的文件（路径不存在或不是文件）")
+            why = "；".join("%s: %s" % (p["source"], p["reason"]) for p in problems) or "没有可导入的文件"
+            raise CoreError("素材一个都没进来：%s" % why)
         manifest.setdefault("assets", []).extend(records)
-        return {"imported": records}
+        return {"imported": records, "problems": problems}
+
+    _root, _m, extra = mutate(path, mut, refresh_html=False)
+    return {"path": str(root), **extra}
+
+
+def import_asset_url(path: str, url: str, filename: str = "") -> dict:
+    """下载一张网络图片并落进工程 assets/，返回与 import_asset 同形的结果。
+
+    搜图渠道拿到的直链走这里：带浏览器 UA、超时 20s、退避重试 3 次，并按文件头
+    复核内容确实是图片（防盗链 403 / 跳转页会直接报错，不会留下一张打不开的假素材）。
+    失败抛 CoreError，原因可读——然后就退回图槽位。
+    """
+    root = project_root(path)
+
+    def mut(manifest):
+        try:
+            record, warn = assets_mod.import_asset_from_url(root, url, filename)
+        except ValueError as exc:
+            raise CoreError("联网取图失败（%s）：%s" % (url, exc)) from exc
+        manifest.setdefault("assets", []).append(record)
+        return {"imported": [record],
+                "problems": [{"source": url, "reason": warn, "imported": True}] if warn else []}
 
     _root, _m, extra = mutate(path, mut, refresh_html=False)
     return {"path": str(root), **extra}
@@ -333,6 +368,134 @@ def list_assets(path: str) -> dict:
     }
 
 
+# ---------------------------------------------------------------- 素材体检
+
+
+_ASSET_PROPS = ("src", "poster", "fillImage", "image", "gif")
+
+
+def _asset_refs(manifest: dict):
+    """遍历出所有指向素材的引用：(页号, 元素名, 属性名, 值)。"""
+    for pi, page in enumerate(manifest.get("pages") or []):
+        bg = page.get("background") or {}
+        if bg.get("type") == "image" and bg.get("image"):
+            yield pi, "页面背景", "image", str(bg["image"])
+        for el in page.get("elements") or []:
+            for key in _ASSET_PROPS:
+                val = (el.get("props") or {}).get(key)
+                if isinstance(val, str) and val and not val.startswith("data:"):
+                    yield pi, str(el.get("name") or el.get("id") or el.get("type")), key, val
+
+
+def check_media(path: str) -> dict:
+    """导出前体检：逐条列出会「少一张图 / 播不了」的素材引用问题。
+
+    查这些：文件不在盘上、props 写了 http(s) 外链或工程外绝对路径、图片解不开或
+    只有缩略图尺寸、数字人 / 视频的 poster 指向 mp4。**导出前跑一次**，problems
+    非空就按提示补图或退回图槽位——比导出的成品里凭空空一块好查得多。
+    """
+    from .core.paths import VIDEO_EXT
+
+    root = project_root(path)
+    manifest = read_manifest(root)
+    problems = []
+    refs = 0
+    for pi, who, key, value in _asset_refs(manifest):
+        refs += 1
+        low = value.lower()
+        item = {"page": pi, "element": who, "prop": key, "value": value}
+        if low.startswith(("http://", "https://", "ftp://")):
+            problems.append({**item, "problem": "外链：导出件离线打开会断图，先 import_asset_url 落进 assets/"})
+            continue
+        if low.startswith("file:") or Path(value).is_absolute() or value.startswith(("\\\\", "//")):
+            problems.append({**item, "problem": "不是工程内相对路径：应写成 assets/xxx 的 relPath"})
+            continue
+        if not low.startswith("assets/"):
+            problems.append({**item, "problem": "不在 assets/ 下：导出件不会带上这个文件"})
+            continue
+        target = root / value
+        if not target.is_file():
+            problems.append({**item, "problem": "素材文件不存在（%s）" % value})
+            continue
+        suffix = target.suffix.lower()
+        fatal, warn = assets_mod.inspect_image(target)
+        if fatal:
+            problems.append({**item, "problem": fatal})
+        elif warn:
+            problems.append({**item, "problem": warn, "level": "warning"})
+        if key == "poster" and suffix in VIDEO_EXT:
+            problems.append({**item, "problem": "poster 指向视频文件，封面帧打不开（可用 attach_dh_posters 自动补）"})
+    return {"path": str(root), "ok": not [p for p in problems if p.get("level") != "warning"],
+            "refs": refs, "problems": problems}
+
+
+def attach_dh_posters(path: str, force: bool = False) -> dict:
+    """给工程里缺封面帧的数字人 / 视频元素补一张真封面帧（从它自己的 mp4 里抽）。
+
+    PPTX / PDF / PNG 只认 poster 静态帧：poster 空着会落深色兜底图，误写成 mp4
+    路径则根本打不开。这里把该帧抽出来落进 assets/ 并回写 props.poster。
+    需要 ffmpeg（或 pip install imageio-ffmpeg）；拿不到就原样跳过并说明原因。
+    """
+    from .core.paths import VIDEO_EXT
+
+    root = project_root(path)
+    manifest = read_manifest(root)
+    targets = []
+    for pi, page in enumerate(manifest.get("pages") or []):
+        for el in page.get("elements") or []:
+            if el.get("type") not in ("digital_human", "video"):
+                continue
+            props = el.get("props") or {}
+            src = str(props.get("src") or "")
+            poster = str(props.get("poster") or "")
+            good = (bool(poster) and not poster.startswith("data:")
+                    and Path(poster).suffix.lower() not in VIDEO_EXT
+                    and (root / poster).is_file())
+            if good and not force:
+                continue
+            targets.append({"page": pi, "id": el.get("id"), "name": el.get("name"),
+                            "src": src, "hadPoster": poster})
+
+    fixed, skipped = [], []
+    if not targets:
+        return {"path": str(root), "fixed": [], "skipped": [], "note": "所有数字人 / 视频都已有可用封面帧"}
+    try:
+        from .dh import media as dh_media
+    except Exception as exc:                          # noqa: BLE001 —— dh 被拆走时明确说明
+        return {"path": str(root), "fixed": [], "skipped": [
+            {"element": t["name"], "reason": "数字人模块不可用: %s" % exc} for t in targets]}
+    if not dh_media.ffmpeg_exe():
+        return {"path": str(root), "fixed": [], "skipped": [
+            {"element": t["name"], "reason": "缺少 ffmpeg（装 ffmpeg 或 pip install imageio-ffmpeg）"}
+            for t in targets]}
+
+    for t in targets:
+        video = root / t["src"]
+        if not t["src"] or not video.is_file():
+            skipped.append({"element": t["name"], "reason": "播报视频文件不在（%s）" % t["src"]})
+            continue
+        tmp_dir = tempfile.mkdtemp(prefix="dh_poster_")
+        jpg = ""
+        try:
+            stem = assets_mod.sanitize_filename(t["name"] or "el") or "el"
+            jpg = dh_media.extract_poster(str(video), os.path.join(tmp_dir, stem + "_poster.jpg"))
+            rel = import_asset(str(root), [jpg])["imported"][0]["relPath"]
+        except Exception as exc:                      # noqa: BLE001 —— 单个封面帧失败不拖垮整批
+            skipped.append({"element": t["name"], "reason": str(exc)})
+            continue
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        try:
+            update(str(root), {"props.poster": rel},
+                   element_id=t["id"] or "", match=None if t["id"] else {"name": t["name"]},
+                   page_index=t["page"])
+        except CoreError as exc:
+            skipped.append({"element": t["name"], "reason": "封面帧已落 assets 但回写失败: %s" % exc})
+            continue
+        fixed.append({"element": t["name"], "page": t["page"], "poster": rel})
+    return {"path": str(root), "fixed": fixed, "skipped": skipped}
+
+
 # ---------------------------------------------------------------- 导出
 
 
@@ -342,6 +505,8 @@ def export(path: str, fmt: str = "pptx", out_dir: str = "", scene_gifs=None, **o
     - pptx 需 python-pptx；pdf / png / svg 需本机 Edge/Chrome（无头打印/渲染）。
     - png / svg 额外支持 options：pages（"1" / "1,3" / "2-5"，空=全部）、
       dpi（96/150/300/600）、transparent（bool）。
+    - mediaMode（演示模式）：plain = 纯 PPT（导出时剥掉 audio / digital_human，安静放映），
+      full = 默认（音频 / 数字人照常嵌入）。UI 导出弹窗三选一即走这里。
 
     微场景 vs 导出格式：
     - html：微场景是真身（沙箱 iframe 跑 props.code），会动；
@@ -352,6 +517,16 @@ def export(path: str, fmt: str = "pptx", out_dir: str = "", scene_gifs=None, **o
     root = project_root(path)
     with project_lock(root):
         manifest = read_manifest(root)
+    media_mode = str(options.pop("mediaMode", "full") or "full").strip().lower()
+    if media_mode not in ("plain", "full"):
+        raise CoreError("mediaMode 只支持 plain（纯 PPT）或 full（含音频/数字人）")
+    if media_mode == "plain":
+        manifest = copy.deepcopy(manifest)
+        for page in (manifest.get("pages") or []):
+            page["elements"] = [
+                el for el in (page.get("elements") or [])
+                if el.get("type") not in ("audio", "digital_human")
+            ]
     fmt = (fmt or "pptx").lower()
     src = str(root)
     if fmt == "html":
@@ -599,3 +774,45 @@ def element_types() -> list[dict]:
             "modelNote": str(spec.get("modelNote") or "").strip(),
         })
     return sorted(out, key=lambda x: x["type"])
+
+
+# ---------------------------------------------------------------- 数字人（可选模块 dh）
+
+
+def dh_status() -> dict:
+    """数字人模块环境探测：{engine: 'ok' | 'missing ...'}。
+
+    dh 是可选模块：未安装重依赖时本函数照常返回（lightweight 档只要
+    Pillow + ffmpeg/imageio-ffmpeg 就能跑），核心其余功能不受影响。
+    """
+    try:
+        from .dh import validator
+        return validator.check_all()
+    except Exception as exc:  # noqa: BLE001 —— 模块被拆走时给个明确说法
+        return {"error": "数字人模块不可用: %s" % exc}
+
+
+def generate_digital_human(image: str, audio: str, engine: str = "auto",
+                            out_dir: str = "", out_name: str = "",
+                            poster: bool = True) -> dict:
+    """生成数字人播报视频（照片 + 讲稿音频 → 带声 MP4）。
+
+    engine: "auto"（liveportrait → sadtalker → lightweight，探测可用后逐个尝试，
+    运行期失败自动降级下一档）或指定引擎名；
+    返回 {video: 输出绝对路径, engine: 实际使用的引擎, poster: 封面帧 JPG 路径（可能为空）,
+    tried: 尝试过的引擎}。
+    拿到 video 后走 import_asset 落进工程 assets/，再 insert 一个 digital_human 元素引用它；
+    poster 一并 import 后写进 props.poster（PPTX / PDF 只认这张静态帧）。
+    许可与方案对比见 noedit_core/dh/README.md（Wav2Lip 严禁商用，别用）。
+    """
+    try:
+        from .dh import generator
+    except Exception as exc:  # noqa: BLE001 —— 模块被拆走时给个明确说法
+        raise CoreError("数字人模块不可用: %s" % exc) from exc
+    try:
+        return generator.generate(image, audio, engine=engine,
+                                  out_dir=out_dir or None,
+                                  out_name=out_name or None,
+                                  poster=poster)
+    except Exception as exc:  # noqa: BLE001 —— 引擎错误原样抛给调用方
+        raise CoreError(str(exc)) from exc

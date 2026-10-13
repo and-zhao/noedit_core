@@ -44,6 +44,40 @@
           <button data-fmt="svg">SVG</button>
         </div>
       </div>
+
+      <!-- 演示模式选择弹窗：导出前问一次要「纯 PPT / 音频 / 数字人」 -->
+      <div class="modal-back" id="mode-modal" hidden>
+        <div class="modal mode-modal">
+          <div class="modal-title" data-i18n="mode.title">选择演示模式</div>
+          <div class="mode-sub" id="mode-sub"></div>
+          <div class="mode-cards">
+            <label class="mode-card">
+              <input type="radio" name="mode" value="plain">
+              <span class="mode-emoji">ppt</span>
+              <span class="mode-name" data-i18n="mode.plain.name">纯 PPT</span>
+              <span class="mode-desc" data-i18n="mode.plain.desc">安静放映，导出时移除音频与数字人</span>
+            </label>
+            <label class="mode-card">
+              <input type="radio" name="mode" value="audio" checked>
+              <span class="mode-emoji">&#9834;</span>
+              <span class="mode-name" data-i18n="mode.audio.name">音频模式</span>
+              <span class="mode-desc" data-i18n="mode.audio.desc">保留讲稿配音 / 背景乐，进页自动播</span>
+            </label>
+            <label class="mode-card">
+              <input type="radio" name="mode" value="dh">
+              <span class="mode-emoji">&#9679;</span>
+              <span class="mode-name" data-i18n="mode.dh.name">数字人模式</span>
+              <span class="mode-desc" data-i18n="mode.dh.desc">音频 + 数字人播报视频全部保留</span>
+            </label>
+          </div>
+          <label class="mode-remember"><input type="checkbox" id="mode-remember" checked>
+            <span data-i18n="mode.remember">记住选择，下次直接导出</span></label>
+          <div class="modal-actions">
+            <button class="btn" id="mode-cancel" data-i18n="mode.cancel">取消</button>
+            <button class="btn primary" id="mode-ok" data-i18n="mode.ok">导出</button>
+          </div>
+        </div>
+      </div>
       <div class="lang">
         <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z" /></svg>
         <select id="lang-select" class="mini-select lang-select" data-i18n-title="lang.label" title="语言"></select>
@@ -71,6 +105,15 @@
           <button class="mini" id="btn-add-el" data-i18n-title="panel.elements.add.title" title="新增元素">＋</button>
         </div>
         <ul class="list" id="el-list"></ul>
+        <div class="tracks" id="tracks" hidden>
+          <div class="tracks-head">
+            <span data-i18n="panel.tracks" data-i18n-title="panel.tracks.title">音轨</span>
+            <span class="tracks-note" id="tracks-note"></span>
+          </div>
+          <div class="tracks-scale" id="tracks-scale"></div>
+          <div class="tracks-body" id="tracks-body"></div>
+          <div class="tracks-hint" data-i18n="tracks.hint">拖动音频块调整它在第几秒开始播放</div>
+        </div>
       </section>
     </aside>
 

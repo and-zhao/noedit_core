@@ -296,6 +296,70 @@
         ] }
       ]
     },
+    "audio": {
+      "label": "音频",
+      "name": "音频",
+      "w": 320,
+      "h": 72,
+      "style": { "borderRadius": 36, "background": "#16283F", "borderWidth": 1, "borderColor": "#24466B" },
+      "modelNote": "音频（讲稿配音 / 背景乐 / 音效）。props.src 只认工程内 assets/ 相对路径；进入该页后按 props.startAt 秒自动开始播放（配合 autoplay），导出 HTML 离线可播、PPTX 里真嵌音轨放映可播；PDF / PNG / SVG 里渲染成一个静态音频条（图标 + 名称），不影响版面。AI 合成音频（TTS）先 upload_asset 落进 assets/ 再引用；一页配多条音频时用 startAt 错开。",
+      "sections": [
+        { "title": "音频", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.src", "label": "素材", "widget": "text", "default": "", "placeholder": "assets/xxx.mp3", "desc": "音频素材（工程内相对路径）" },
+            { "path": "props.title", "label": "显示名", "widget": "text", "default": "", "desc": "音频条上显示的名字（留空用素材文件名）" }
+          ] }
+        ] },
+        { "sep": true, "title": "播放", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.autoplay", "label": "自动播放", "widget": "checkbox", "default": true, "desc": "进入该页（或打开导出件）后自动开始" },
+            { "path": "props.loop", "label": "循环播放", "widget": "checkbox", "default": false },
+            { "path": "props.controls", "label": "显示控制条", "widget": "checkbox", "default": true, "desc": "音频条上显示播放/暂停按钮" }
+          ] },
+          { "cols": 2, "fields": [
+            { "path": "props.startAt", "label": "页内开始秒", "widget": "number", "default": 0, "min": 0, "max": 3600, "fallback": 0, "desc": "进入该页后第几秒开始播放（0 = 立即）；多条音频用它错开" },
+            { "path": "props.volume", "label": "音量", "widget": "range", "default": 1, "min": 0, "max": 1, "step": 0.05 }
+          ] }
+        ] }
+      ]
+    },
+    "digital_human": {
+      "label": "数字人",
+      "name": "数字人",
+      "w": 360,
+      "h": 300,
+      "style": { "borderRadius": 12 },
+      "modelNote": "数字人播报（一段带声音的说话人视频）。props.src 只认工程内 assets/ 相对路径（由 dh 模块或云端数字人服务生成后 import_asset 落入工程再引用）；props.startAt = 进入该页后第几秒开始播报（与 audio 同语义）；导出 HTML 进视口自动播、PPTX 真嵌视频放映可播可听；PDF / PNG / SVG 里渲染 poster 封面帧 + 名牌。一页最多放 1 个数字人（会抢声音）；默认摆右下角不压正文。生成流程见 noedit_core/dh/README.md（LivePortrait / SadTalker 开源 MIT 可商用，Wav2Lip 严禁商用，Azure / 腾讯云付费）。",
+      "sections": [
+        { "title": "数字人", "rows": [
+          { "cols": 1, "fields": [
+            { "path": "props.src", "label": "播报视频", "widget": "text", "default": "", "placeholder": "assets/xxx.mp4", "desc": "数字人播报视频（工程内相对路径，dh 模块生成后落 assets/）" },
+            { "path": "props.poster", "label": "封面帧", "widget": "text", "default": "", "placeholder": "assets/cover.png", "desc": "未播放时显示的画面（PDF / PNG / SVG 静态导出也用它）" },
+            { "path": "props.title", "label": "名牌文字", "widget": "text", "default": "数字人", "desc": "左下角名牌徽章上显示的名字" },
+            { "path": "props.fit", "label": "填充", "widget": "select", "default": "cover",
+              "options": [["fill", "拉伸填满"], ["contain", "完整显示"], ["cover", "裁剪填满"]] }
+          ] }
+        ] },
+        { "sep": true, "title": "播报行为", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.autoplay", "label": "自动播报", "widget": "checkbox", "default": true, "desc": "进入该页后自动开始" },
+            { "path": "props.loop", "label": "循环播放", "widget": "checkbox", "default": false },
+            { "path": "props.controls", "label": "显示控制条", "widget": "checkbox", "default": false },
+            { "path": "props.hideBadge", "label": "隐藏名牌", "widget": "checkbox", "default": false }
+          ] },
+          { "cols": 2, "fields": [
+            { "path": "props.startAt", "label": "页内开始秒", "widget": "number", "default": 0, "min": 0, "max": 3600, "fallback": 0, "desc": "进入该页后第几秒开始播报（0 = 立即）" },
+            { "path": "props.volume", "label": "音量", "widget": "range", "default": 1, "min": 0, "max": 1, "step": 0.05 }
+          ] }
+        ] },
+        { "sep": true, "title": "剪辑", "rows": [
+          { "cols": 2, "fields": [
+            { "path": "props.startTime", "label": "素材开始秒", "widget": "number", "default": 0, "min": 0, "max": 86400, "fallback": 0, "desc": "从视频素材的第几秒开始用" },
+            { "path": "props.endTime", "label": "素材结束秒", "widget": "number", "default": 0, "min": 0, "max": 86400, "fallback": 0, "desc": "0 表示用到片尾" }
+          ] }
+        ] }
+      ]
+    },
     "link": {
       "label": "链接",
       "name": "链接",

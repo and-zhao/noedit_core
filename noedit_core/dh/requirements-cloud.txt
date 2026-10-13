@@ -1,0 +1,6 @@
+# 云端数字人引擎依赖（Azure / 腾讯云 / 阿里云）
+requests>=2.28
+# 各家 SDK 按所选 provider 自行安装：
+# azure   : pip install azure-cognitiveservices-speech
+# tencent : pip install tencentcloud-sdk-common tencentcloud-sdk-hunyuan
+# aliyun  : pip install alibabacloud-avatar20220130

@@ -145,14 +145,18 @@ api.update(path, {"x": 100, "props.text": "新标题", "style.fontSize": 32}, el
 
 ### `reorder(path, element_id="", match=None, index=-1, to_front=False, to_back=False, page_index=0) -> dict`
 
-`index` 越大越靠上；或用 `to_front` / `to_back`。
+`index` 越大越靠上；或用 `to_front` / `to_back`——**这两个词说的是「元素列表的前后」，不是「画面视觉的前后」**：
+`to_front=True` = 移到列表最前 = **压到最底层**；`to_back=True` = 移到最后 = **抬到最上层**。
+要把底板 / 装饰压到最底就用 `to_front`，要把页码、遮罩抬到图上就用 `to_back`（实测踩过：拿 `to_back` 压底板会盖住正文）。
 
 ### 定位规则（`element_id` vs `match`）
 
 - 给 `element_id`（元素 `id`）精确定位。
 - 给 `match` 按描述定位，支持 4 个键：`type`、`name`（精确相等）、`nameContains`（子串）、`srcContains`（匹配图片 `props.src` 或元素名）。
   - 多条件为 AND：`match={"type": "text", "nameContains": "标题"}`。
-- **`match` 不给页范围会跨整页匹配**，务必同时传 `page_index` / `page_indexes` / `all_pages`。
+- **`match` 的页范围只由 `page_indexes=[...]` / `all_pages=True` 决定，`page_index` 不参与筛选**——
+  它只是连线锚点解析用的「当前页」。只传 `page_index=0` 的 `match` 会命中**全篇**同名元素（实测一次 `update`
+  改「章节-配图」同时改到了两页）。要限定一页：写 `page_indexes=[2]`，或先 `list_elements` 拿 `element_id`。
 - 两者都不给 → `CoreError`；找不到目标 → `CoreError`。
 - **锁定（`locked:true`）的元素不会被自动跳过**——核心不强制拦截，改了就是改了。要避开锁定元素得自己先筛。
 
@@ -167,11 +171,57 @@ api.update(path, {"x": 100, "props.text": "新标题", "style.fontSize": 32}, el
 ```json
 {"path": "...", "imported": [
     {"id": "a1b2c3d4e5", "name": "logo.png", "relPath": "assets/logo.png",
-     "kind": "image", "size": 1234, "addedAt": 1234567890, "origin": "D:\\pics\\logo.png"}]}
+     "kind": "image", "size": 1234, "width": 1024, "height": 683,
+     "addedAt": 1234567890, "origin": "D:\\pics\\logo.png"}],
+ "problems": [
+    {"source": "D:\\pics\\cover.png", "reason": "文件不存在或不是文件", "imported": false},
+    {"source": "D:\\pics\\tiny.jpg", "reason": "尺寸只有 90×60，像缩略图，放大到版面上会糊", "imported": true}]}
 ```
 
-之后把 `relPath` 写进元素 `props.src` 即可引用。`kind` 取值：`image` / `video` / `audio` / `table` / `code` / `file`。
-路径不存在或不是文件的条目会被静默跳过；全都无效则抛 `CoreError`。
+之后把 `relPath` 写进元素 `props.src` 即可引用。`kind` 取值：`image` / `video` / `audio` / `table` / `code` / `file`；
+图片额外带 `width` / `height`（读得出才给）。
+
+**`problems` 必须看**：`imported: false` = 这个文件根本没进工程，页面照做就是缺一块图；
+`imported: true` 的那条是隐患告警（缩略图尺寸、图片解码宽容通过）。一个都没进来才抛 `CoreError`。
+
+### `import_asset_url(path, url, filename="") -> dict`
+
+下载一张网络图片并落进 `assets/`，返回形状同 `import_asset`。内置：浏览器 UA（图床对裸 UA 常回 403）、
+超时 20s、退避重试 3 次、25 MB 上限、**按文件头复核内容确实是图片**（跳转页 / 防盗链 HTML 直接报错，
+不会存下一张打不开的假素材）。失败抛 `CoreError`，原因可读。
+
+```python
+rec = api.import_asset_url(P, "https://example.com/robot-arm.jpg", "机械臂实景")
+rel = rec["imported"][0]["relPath"]        # assets/机械臂实景.jpg
+```
+
+### `check_media(path) -> dict`
+
+**导出前体检**——把会让成品「少一张图 / 播不了」的引用逐条点名：
+
+```json
+{"path": "...", "ok": false, "refs": 12, "problems": [
+    {"page": 0, "element": "封面-主视觉", "prop": "src", "value": "assets/cover.png",
+     "problem": "素材文件不存在（assets/cover.png）"},
+    {"page": 2, "element": "产品图", "prop": "src", "value": "https://.../p.png",
+     "problem": "外链：导出件离线打开会断图，先 import_asset_url 落进 assets/"},
+    {"page": 0, "element": "页1-数字人", "prop": "poster", "value": "assets/host.mp4",
+     "problem": "poster 指向视频文件，封面帧打不开（可用 attach_dh_posters 自动补）"}]}
+```
+
+扫描范围：元素的 `src` / `poster` / `fillImage` / `image` / `gif` + 页面背景图；`data:` 内联跳过。
+`level:"warning"` 的条目（缩略图尺寸）不算 `ok=False`。
+
+### `attach_dh_posters(path, force=False) -> dict`
+
+给工程里 poster 缺失 / 空 / 误写成 mp4 的 `digital_human` 与 `video` 元素**从它自己的视频里抽一帧**，
+存成 JPG 落进 `assets/` 并回写 `props.poster`。需要 ffmpeg（或 `pip install imageio-ffmpeg`），
+拿不到就整批跳过并在 `skipped` 里说明原因。
+
+```json
+{"path": "...", "fixed": [{"element": "页1-数字人", "page": 0, "poster": "assets/页1-数字人_poster.jpg"}],
+ "skipped": [{"element": "页3-数字人", "reason": "播报视频文件不在（assets/host3.mp4）"}]}
+```
 
 ### `list_assets(path) -> dict`
 
@@ -320,6 +370,41 @@ HTML 导出一定动；**PPTX 里也能动**——核心把场景逐帧抓下来
 - 返回含 `{"ok", "path", "message", ...}`；缺浏览器 / 缺库 / 无 `seek` 时 `ok=False` 并说明原因。
 - **调用一律用关键字**：本函数 11 个参数里后 10 个带默认值，**位置错位不报错、会静默串字段**——最典型的是把 `code` 之类的东西落到末尾的 `name` 上，表现为「输出文件名异常」。除 `path` 外请全部写 `键=值`。
 - **失败排查**：`ok=False` 时 **`path` 恒为空**，原因只在 `message` 里（分流表见 SKILL.md「GIF 抓帧失败」节）。
+
+---
+
+## 数字人（可选模块 dh）
+
+### `dh_status() -> dict`
+
+探测四个引擎档位，值要么是 `ok` 要么是缺什么：
+
+```json
+{"lightweight": "ok",
+ "liveportrait": "missing repo (set NOEDIT_DH_LIVEPORTRAIT to LivePortrait checkout)",
+ "sadtalker": "missing repo (set NOEDIT_DH_SADTALKER to SadTalker checkout)",
+ "cloud": "no config set (copy cloud_config.example.json -> cloud_config.json)"}
+```
+
+`cloud` 配好 key 后会回报「**桥接未接入**」而不是 `ok`——`cloud_engine` 目前是骨架，别对承诺云端效果。
+
+### `generate_digital_human(image, audio, engine="auto", out_dir="", out_name="", poster=True) -> dict`
+
+照片 + 讲稿音频 → 带声 MP4。`engine="auto"` 先按 liveportrait → sadtalker → lightweight 探测可用档，
+**运行期崩了还会自动降级下一档**（GPU 缺失、外部仓库参数不对这类探测不出来的问题不会把整条链路卡死）。
+产物会做真实体检（文件在、字节数够、时长不为零）才返回。
+
+```json
+{"video": "D:\\tts\\host_p1.mp4",
+ "engine": "lightweight",
+ "poster": "D:\\tts\\host_p1_poster.jpg",
+ "tried": ["liveportrait", "lightweight"],
+ "note": "已降级: liveportrait: LivePortrait 推理失败: ..."}
+```
+
+`poster` 是从成片抽的封面帧（PPTX / PDF / PNG 只认这张静态图）；抽不到为空串，
+之后可用 `attach_dh_posters` 补。**poster 不要填 mp4 路径**。
+失败抛 `CoreError`，消息里带各档的失败原因。
 
 ---
 

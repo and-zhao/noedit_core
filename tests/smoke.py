@@ -156,8 +156,54 @@ def main() -> None:
 
     _smoke_server(path)
     _smoke_icons(path)
+    _smoke_media(path)
 
     print("\nSMOKE OK —— 核心可用。")
+
+
+def _smoke_media(path: str) -> None:
+    """[15] 素材导入回报 + 导出前体检 + 静态 HTML 标签闭合。"""
+    dot = Path(path) / "assets" / "dot.png"
+
+    # 缺文件不再静默跳过：problems 里点名，且进来的那个仍然成功
+    r = api.import_asset(path, [str(ROOT / "_src" / "根本没有这个文件.png"), str(dot)])
+    assert len(r["imported"]) == 1 and r["problems"] and r["problems"][0]["imported"] is False, r
+    print(f"[15] import_asset 回报缺失项 ✓ {r['problems'][0]['reason']}")
+
+    # 全缺 → 明确报错，不再「导入了 0 个」还往下走
+    try:
+        api.import_asset(path, [str(ROOT / "_src" / "不存在.png")])
+        raise AssertionError("全不存在的导入应抛 CoreError")
+    except api.CoreError as exc:
+        assert "不存在" in str(exc), exc
+
+    # 断图与外链都能被 check_media 点名
+    api.insert(path, {"type": "image", "name": "断图", "x": 10, "y": 10, "w": 100, "h": 100,
+                      "props": {"src": "assets/压根没导进来.png"}}, page_index=1)
+    api.insert(path, {"type": "image", "name": "外链图", "x": 20, "y": 20, "w": 100, "h": 100,
+                     "props": {"src": "https://example.com/x.png"}}, page_index=1)
+    c = api.check_media(path)
+    kinds = " | ".join(p["problem"] for p in c["problems"])
+    assert not c["ok"], c
+    assert "素材文件不存在" in kinds and "外链" in kinds, kinds
+    assert any(p.get("level") == "warning" for p in c["problems"]), "1×1 的 dot.png 该被点成缩略图告警"
+    api.delete(path, match={"name": "断图"}, page_index=1)
+    api.delete(path, match={"name": "外链图"}, page_index=1)
+    assert api.check_media(path)["ok"], api.check_media(path)["problems"]
+    print(f"[16] check_media 导出前体检 ✓ 抓到并清空 {len(c['problems'])} 条")
+
+    # 每种图片形态都得是闭合的（漏一个 </div> 会把后面所有元素吞进这个框里）
+    from noedit_core.core import projects as prj
+    for props in ({"src": "assets/dot.png"},
+                  {"src": "assets/dot.png", "shadowOn": True},
+                  {"src": "assets/dot.png", "reflectOn": True},
+                  {"src": "assets/dot.png", "cropTop": 20, "cropLeft": 10},
+                  {}):
+        frag = prj.element_html({"type": "image", "name": "t", "w": 200, "h": 100, "props": props})
+        assert frag.count("<div") == frag.count("</div>"), (props, frag)
+    html = Path(api.export(path, "html")["path"]).read_text(encoding="utf-8")
+    assert html.count("<div") == html.count("</div>"), "导出的静态 HTML 里 div 必须配平"
+    print("[17] image 元素 HTML 片段标签闭合 ✓")
 
 
 def _smoke_icons(path: str) -> None:

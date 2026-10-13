@@ -141,7 +141,7 @@ description: 用 NoEdit Core 直接做 PPT / 幻灯片 / 多页画布并导出 p
 
 **图片资产要在本阶段就定稿**：列出每页需要的配图（封面视觉 / 氛围图 / 实景 / 人物 / 产品 / 截图），并判断来源：
 1. 用户已供图 → 走 `import_asset` 落入 `assets/`；
-2. **你当前环境提供 `image_search` / `image_generation` 工具** → **主动调用**补齐照片感配图，再落入 `assets/`；
+2. **你当前环境有出图能力**（自带生图工具，或能联网搜图 / 抓图）→ **主动调用**补齐照片感配图，再用 `api.import_asset` / `api.import_asset_url` 落进 `assets/`；导入返回的 `problems` 非空就说明这张图没到手，当场处理，别带病往下做页；
 3. 无图也无工具 → 留「图槽位」（`shape:rect` + 图注 `text`），将来只改 `props.src` 即可换图。
 
 **不许用外部 http(s) URL 直接当 `props.src`**——导出件必须离线自包含。
@@ -434,9 +434,11 @@ UI 的后端就是 `noedit_core.api`（HTTP JSON-RPC），数据落在同一份 
 | `insert(path, element, page_index=0, page_indexes=None, all_pages=False)` | 插入元素 | `element` 至少给 `type` |
 | `update(path, props, element_id="", match=None, ...)` | 改元素 | `props` 的键是**点号路径** |
 | `delete(path, element_id="", match=None, ...)` | 删元素 | |
-| `reorder(path, element_id="", match=None, index=-1, to_front=False, to_back=False, ...)` | 调层级 | `index` 越大越靠上 |
-| `import_asset(path, source_paths)` | 把外部文件复制进工程 `assets/` | 返回记录的 `relPath` |
+| `reorder(path, element_id="", match=None, index=-1, to_front=False, to_back=False, ...)` | 调层级 | `index` 越大越靠上；**`to_front`=压到最底、`to_back`=抬到最上**（说的是列表前后，不是视觉前后） |
+| `import_asset(path, source_paths)` | 把外部文件复制进工程 `assets/` | 返回 `imported`（含 `relPath`）与 `problems`（哪个文件没进来 / 有什么毛病）|
+| `import_asset_url(path, url, filename="")` | 下载网络图片并落进 `assets/`（带 UA / 重试 / 图片头复核）| 同上；失败抛 `CoreError` 并说明原因 |
 | `list_assets(path)` | 列工程内素材 + 磁盘是否还在 | |
+| `check_media(path)` | **导出前体检**：断图 / 外链 / 缩略图 / `poster` 指向 mp4 | `ok`、`problems[{page,element,prop,problem}]` |
 | `icon_groups()` | 列矢量图标分组（1800+ 图标 / 36 组） | |
 | `icon_list(group="", limit=200)` | 列某分组图标（精简字段，不带 `d`） | `group` 空 = 只回分组概览 |
 | `icon_search(keyword="", group="", limit=40)` | 按关键词搜图标 | 匹配英文名 / id / 中文分组名 |
@@ -448,8 +450,9 @@ UI 的后端就是 `noedit_core.api`（HTTP JSON-RPC），数据落在同一份 
 
 - `element_id`：`insert` 后从 `list_elements` 的返回里拿 `id`，最准。
 - `match`：按描述定位，支持 4 个键 —— `type`、`name`（精确）、`nameContains`、`srcContains`（匹配图片 `props.src`）。
-  例：`api.delete(path, match={"type": "shape"}, page_index=0)`。
-- **`match` 不给页范围会跨整页匹配**，务必同时传 `page_index`（或 `page_indexes` / `all_pages`）。
+- **`match` 的页范围只由 `page_indexes=[...]` / `all_pages=True` 决定，`page_index` 不参与筛选**
+  （`page_index` 只当连线锚点解析用的「当前页」）。只传 `page_index=0` 的 `match` 会**命中全篇同名元素**——
+  实测拿它改「章节-配图」一次改到了两页。要限定一页：写 `page_indexes=[2]`，或先 `list_elements` 拿 `element_id`。
 - 找不到目标会抛 `CoreError`，不要吞掉。
 
 ### 改元素：`props` 用点号路径
@@ -707,19 +710,31 @@ api.list_assets(path)   # -> [{name, relPath, kind, size, exists}, ...]
 
    **工具调用 → 落入工程 → 插入页面的标准动作**：
    1. **判断哪页需要配图**：封面必有；章节页可选；数据 / 流程页原则上不配照片（用矢量）。每页最多 1 张主图，不要让照片喧宾夺主。
-   2. **搜图**（优先）：用 `image_search` 工具，关键词给**具体场景 + 风格 + 色调**，例如：
+   2. **先认清手上有什么工具**：出图能力在各环境里名字不同（`image_generation` / `ImageGen` / 文生图 /
+      画图插件……），**有哪个用哪个**；只有生图没有搜图时就直接生图，不要因为「没有 `image_search`」这一
+      档就不配图——配图率低才是更明显的失分。反过来只有搜图没有生图，就把每条关键词公式当提示词去搜。
+   3. **搜图**（有真实场景 / 产品 / 人物时优先）：先用环境的联网搜索 / 抓取能力拿到**图片直链**，再走
+      `api.import_asset_url(path, url)` 落地——它会带浏览器 UA、退避重试、按文件头复核确实是图片，
+      防盗链 403 与 HTML 跳转页会当场报错而不是留下一张打不开的假图。关键词给
+      **具体场景 + 风格 + 色调**，例如：
       `"industrial robotic arm factory floor blue orange cinematic wide shot, clean background, no text"`。
       拿到结果后挑一张**无水印、无截图边框、无奇怪留白、没有乱码文字**的图。
-   3. **生图**（搜不到或需要特定氛围时用）：用 `image_generation` 工具，提示词必须包含：
+   4. **生图**（搜不到、要特定氛围、或对外交付避版权时）：提示词必须包含：
       - 主体描述（具体物件 / 场景）；
       - 风格词（`cinematic, clean, minimalist, professional, high quality`）；
       - 色调词（贴合 6 色 token，如 `dark blue and orange accents`）；
       - **负面词**：`no text, no letters, no numbers, no watermark, no UI elements, no screenshot borders, no people`（如不需要人物）。
-   4. **落入工程**：
+      尺寸按版面来（主视觉取横图 16:9 / 3:2，窄栏配图取竖图），别拿 1:1 去填横条。
+      **生完必须回读**：用环境的读图能力看一眼生成的文件，确认主体正确、没糊、没夹带文字；
+      工具返回的路径**立刻** `import_asset` 导入，别假设它还在原地或叫别的名字。
+   5. **落入工程并核对结果**（这一步决定配图成功率）：
       - 拿到**文件路径** → `api.import_asset(path, [该文件])`；
-      - 拿到 **dataURL / URL / 字节** → 走 UI 通道 `upload_asset`（`POST /api/call`，
-        `{"name":"cover_bg.png","data_url":"data:image/png;base64,…"}`），它会写进当前工程 `assets/` 并登记。
-   5. **引用**：用返回的 `relPath` 写元素 `props.src`，例如：
+      - 拿到 **dataURL / URL / 字节** → `api.import_asset_url(path, url)`，或走 UI 通道 `upload_asset`
+        （`POST /api/call`，`{"name":"cover_bg.png","data_url":"data:image/png;base64,…"}`）；
+      - **返回里的 `problems` 必须逐条看**：`文件不存在` = 路径写错了，回去换正确路径重试；
+        `图片无法解码` = 文件坏了 / 是网页；`尺寸像是缩略图` = 换一张大图。
+        **有 `imported: False` 的项就当这一步还没完成**，别继续排版。
+   6. **引用**：用返回的 `relPath` 写元素 `props.src`，例如：
       ```python
       rec = api.import_asset(path, ["D:\\pics\\cover_bg.png"])["imported"][0]
       api.insert(path, {"type": "image", "name": "封面-主视觉", "x": 0, "y": 0, "w": 1280, "h": 720,
@@ -729,12 +744,70 @@ api.list_assets(path)   # -> [{name, relPath, kind, size, exists}, ...]
       ```python
       api.update_page(path, {"background": {"type": "image", "image": "assets/cover_bg.png", "fit": "cover"}})
       ```
-   6. **失败 fallback**：搜图 / 生图失败、返回不可用、或工具不存在时，**立即退回「图槽位」**：一个浅色 `shape:rect` + 图注 `text`，命名 `图槽-01`，不要硬等。
+   7. **失败 fallback**：搜图 / 生图失败、返回不可用、或工具不存在时，**立即退回「图槽位」**：一个浅色 `shape:rect` + 图注 `text`，命名 `图槽-01`，不要硬等。**重试同一张图最多 2 次**，两次不行就槽位，别把整份稿子卡在一张图上。
+   8. **导出前体检**：`api.check_media(path)` 会把断图、外链、缩略图尺寸、`poster` 指向 mp4 这些问题逐条列出来
+      （带页号 / 元素名 / 属性名）。`ok=False` 就先补图或换成图槽位再导出——这是「页面凭空少一张图」的最后一道闸。
 3. **没有图、也没能力搞图** → 留「图槽位」：`shape/rect` + 主题浅色底，命名 `图槽-01`，
    配图注双行（14px 标题 / 12–13px 说明）。将来替换只改 `props.src` 与 `fit`。
 4. **完全不用图** → 纯几何装饰：色块、细线、圆、渐变、编号。比找图快得多。
 
 **图片要当整页底板 / 全篇背景** → 设**页面背景**（`update_page(..., all_pages=True)`），不要逐页插满幅 `image` 元素。
+
+### 音频策略
+
+**何时值得配音**（默认不加，下面任一条成立才加，且要问用户想要哪种）：
+- 「发给别人自己看」的无人讲解场景 → 给每页配讲稿旁白；
+- 氛围 / 发布会类主题 → 封面或结尾页配一小段背景乐；
+- 教学演示 → 关键步骤配音效或解说。
+
+**来源三档（有哪档用哪档）**：
+1. **用户提供了本机音频** → `api.import_asset(path, [文件])` 落进 `assets/`；
+2. **你（agent）自带 TTS / 云端语音合成接口** → 按该页内容写讲稿文本合成（提示词给：文本 + 语言 + 音色 + 语速 + 情感，见 [references/audio-workflow.md](references/audio-workflow.md)），
+   拿到文件走 `import_asset`、拿到字节 / dataURL 走 `upload_asset` 落 `assets/`，再插入 `audio` 元素；
+3. **没有素材也没能力合成** → 不加，别用占位框糊弄（音频没声音就没有意义）。
+
+**用法要点**：
+- 元素：`{"type":"audio","name":"页1-讲稿","x":..,"y":..,"w":320,"h":72,
+  "props":{"src":"assets/p1.mp3","title":"第 1 页讲稿","startAt":0,"autoplay":true,"volume":1}}`；
+- **`props.src` 只认工程内 `assets/` 相对路径**（同图片核心约束，不许外链）；
+- **`startAt` = 进入该页后第几秒开始播**：一页配多条时用它错开（讲解 0s、背景乐 3s 渐入）；
+- 导出行为：**HTML 真播**（页面滚进视口自动开始，`startAt` 秒后起播，离开视口暂停）；
+  **PPTX 真嵌音轨**（放映能播）；**PDF / PNG / SVG** 是静态音频条（喇叭 + 名字）。
+- 音频条默认显示在画布上（胶囊 + 名字），排版时把它当一个小元素摆，**不要压住正文**；
+  想低调可以摆到页脚角落或与底色同色。
+
+### 数字人策略（dh 可选模块）
+
+**何时值得数字人**（比音频更克制——生成成本高、每页最多 1 个）：
+- 无人讲解的对外演示 / 产品介绍 → 封面或关键页放一个数字人播报；
+- 教学 / 慕课 → 讲解页配虚拟讲师；
+- **现场有人演讲 → 不用**（真人 + 数字人声音互相打架）。
+
+**来源四档（先 `api.dh_status()` 探测，有哪档用哪档）**：
+1. **用户直接给了播报视频** → `import_asset` 落 `assets/`，插 `digital_human` 元素；
+2. **本地有 LivePortrait / SadTalker 仓库**（开源 MIT 可商用）→ `api.generate_digital_human(image, audio, engine="auto")` 生成；
+3. **有云端数字人 key**（Azure / 腾讯云，付费）→ 目前 `cloud_engine` 只是**桥接骨架**：填完配置
+   `dh_status()` 会明说「桥接未接入」，`engine="cloud"` 会当场报错而不是半途卡死。**别对用户承诺云端数字人**，
+   要接就在 `cloud_engine.py::_azure/_tencent/_aliyun` 里补 submit/poll/download 三步；
+4. **都没有** → 至少用 `engine="auto"` 探到 **lightweight 档**（Pillow + ffmpeg 呼吸缩放 + 音画合并，效果朴素但全链路可跑）；
+   连图片/音频素材都拿不到就别硬塞。`engine="auto"` 现在会**逐档降级**：优先档运行期崩了自动试下一档，
+   返回里 `tried` / `note` 写明走过哪些引擎。
+
+**许可红线（务必记住）**：**Wav2Lip 严禁商用**（LRS2 数据集）；GeneFace++ / ER-NeRF 是研究代码无宽松商用许可；
+**LivePortrait（快手 KlingAI）与 SadTalker 代码 MIT 可商用**，但部署商用前请再核对官方权重声明；
+Azure / 腾讯云按量付费遵守服务条款。详细对比表与拆分/卸载步骤见 `noedit_core/dh/README.md`。
+
+**用法要点**：
+- 元素：`{"type":"digital_human","name":"页1-数字人","x":880,"y":390,"w":360,"h":300,
+  "props":{"src":"assets/host.mp4","title":"虚拟讲解员","startAt":0,"autoplay":true,"volume":1}}`；
+- **照片要正脸、干净背景**；**讲稿音频**先按「音频策略」合成好；一页 **最多 1 个**数字人；
+- **封面帧必须给图片，不能给视频**：`api.generate_digital_human` 会顺带返回 `poster`（从成片抽的 JPG），
+  把它和 mp4 一起 `import_asset`，`props.poster` 写它的 `relPath`。**手写工程 / 忘了 poster** 时不要瞎填 mp4 路径
+  （PPTX / PDF 上会变成一个打不开的封面），跑一次 `api.attach_dh_posters(path)` 让它自动补齐；
+- `props.startAt` = 进页第几秒开始播报（与 audio 同语义）；默认摆**右下角**不压正文；
+- 导出行为：HTML 进视口自动播报、PPTX 真嵌视频放映可播、PDF/PNG/SVG 是封面帧 + 名牌徽章；
+- **导出弹窗三选一**：纯 PPT（`mediaMode="plain"` 剥掉音频与数字人）/ 音频模式 / 数字人模式——
+  问用户要哪种，用户说「纯 PPT」或现场放映就剥。
 
 ## 导出
 
@@ -779,6 +852,8 @@ api.export(path, "svg", pages="")
 | 全局素材库、模板 | 没有；素材用工程内 `assets/`（见上节），版式自己按 `element_types()` 搭。**你自己带的生图 / 搜图能力不受此限**（见「图片策略」第 2 档）——但图必须先落进 `assets/` |
 | 想把具象图标放进页面 | **有内置矢量图标库**（1800+ 个）：`api.icon_search("箭头")` 找 id → `api.icon_insert(path, id, x=, y=, size=120, color="#c0392b")`。单色图标插成一个可编辑 `path`（能换色）；多色图标插成 `group` 容器 + 分层成员。整组浏览用 `api.icon_groups()` / `api.icon_list(group)` |
 | 截图 / 视觉复核 | 导出 `png` 后自行查看 |
+| 给页面配音 / 背景乐 / 音效 | **支持**：`audio` 元素（工程内 `assets/` 相对路径）；你自带 TTS 云接口就**主动合成**再落入 `assets/` 引用（见「音频策略」）。HTML 真播 / PPTX 真嵌音轨 / PDF·PNG·SVG 静态条 |
+| 数字人播报（虚拟讲师） | **支持**：`digital_human` 元素 + 可选模块 `noedit_core/dh/`（照片 + 讲稿音频 → 播报视频）。开源引擎 LivePortrait / SadTalker（MIT 可商用）；**Wav2Lip 严禁商用**；Azure / 腾讯云付费。HTML 进页自动播 / PPTX 真嵌视频。模块可整体拆分卸载，见 `noedit_core/dh/README.md` |
 | 编辑器里的布尔运算 / 科研波形预设 | 没有；自写 `props.d` |
 
 > 一句话：**静态图（图形 + 图标 + 文字 + 连线 + 图表）全都能做；要「动」就用 HTML（真身）或 PPTX（核心自动内嵌 GIF）——PDF / PNG / SVG 是静态帧**；自动生成内容 / 场景代码 / 封面帧，这里没有。
@@ -841,11 +916,13 @@ api.export(path, "svg", pages="")
 - [ ] 内容页是不是**从母版逐页重铺**来的（核心没有复制页 API）？
 - [ ] 是不是**每页的元素攒成一批** `insert`，而不是改一处看一眼？
 - [ ] 写操作串行、读操作可并发，**先写再读**了吗？
-- [ ] 需要照片感配图的页面，图片已经 `import_asset` / `upload_asset` 落进 `assets/` 并正确写入 `props.src` 了吗？（没用外部 URL）
+- [ ] 需要照片感配图的页面，图片已经 `import_asset` / `import_asset_url` / `upload_asset` 落进 `assets/` 并正确写入 `props.src` 了吗？（没用外部 URL）**每次导入返回的 `problems` 都看过并处理了吗**？
 - [ ] 搜图 / 生图失败的页面，已经留好「图槽位」了吗？
 
 **交付前：**
 
+- [ ] **跑过 `api.check_media(path)` 了吗**？`ok=False`（断图 / 外链 / 缩略图 / `poster` 指向 mp4）先修完再导；
+      配了数字人的工程再跑一次 `api.attach_dh_posters(path)` 补封面帧。
 - [ ] **弹过「检查与修正」卡了吗**？
 - [ ] **弹过「导出」卡了吗**（含「不导出」选项）？**只导了用户点名的那几种**吗？——**漏问导出 = 整轮没走完**。
 - [ ] **交付前查过 UI 当前展示的工程了吗**（`GET /api/ui/current`）？**是待交付的那个吗**？不是就用 `POST /api/ui/open`（体 `{"path":"<工程目录>"}`）**切过去了**吗？
@@ -877,6 +954,8 @@ api.export(path, "svg", pages="")
 - **API 完整签名与返回结构** → [references/api.md](references/api.md)（**微场景（scene）** API：`scene_libs` / `install_scene_lib` / `export_scene_gif` / `compose_scene_gif` 见其中「微场景」节）
 - **导出细节与依赖** → [references/export.md](references/export.md)
 - **图片插入工作流**（搜图 / 生图 → 落入工程 → 插入页面；含关键词公式、提示词模板、失败 fallback）→ [references/image-workflow.md](references/image-workflow.md)
+- **音频插入工作流**（TTS 合成 / 本地素材 → 落入工程 → 插入页面；含讲稿写法、合成参数、startAt 排布）→ [references/audio-workflow.md](references/audio-workflow.md)
+- **数字人播报工作流**（照片 + 讲稿音频 → dh 模块生成播报视频 → 落入工程 → 插入页面；含引擎选择、许可红线、拍照/讲稿要求）→ [references/digital-human-workflow.md](references/digital-human-workflow.md)
 - **设计参考**（术语表 / CRAP / 中文排版 / 六套配色配方 / 常用版式 / 装饰手法 / 常见错误 / 示意图构成）→ [references/design-recipes.md](references/design-recipes.md)
 - **页型参考**（底板装饰层 + 封面 / 目录 / 章节 / 内容 / 致谢的逐元素坐标）→ [references/page-templates.md](references/page-templates.md)
 - **科研 & 矢量绘图参考**（做科研图表 / 原理图 / 机制图 / 任意矢量图时必读：选型 / 统计量 / 坐标轴 / 配色 / 多面板 + 矢量保真 + 投稿导出）→ [references/sci-vector-drawing.md](references/sci-vector-drawing.md)

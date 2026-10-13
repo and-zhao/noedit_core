@@ -1,0 +1,26 @@
+{
+  "_note": "复制本文件为 cloud_config.json 并填入你自己的密钥。cloud_config.json 含密钥，切勿提交到 git / 分发给他人。",
+  "provider": "azure",
+  "azure": {
+    "_doc": "https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech-avatar/overview",
+    "region": "eastasia",
+    "key": "",
+    "voice": "zh-CN-YunxiNeural",
+    "avatar_id": "",
+    "custom_voice_endpoint": ""
+  },
+  "tencent": {
+    "_doc": "腾讯云智能数智人（付费）：https://cloud.tencent.com/product/iva",
+    "secret_id": "",
+    "secret_key": "",
+    "avatar_id": "",
+    "region": "ap-guangzhou"
+  },
+  "aliyun": {
+    "_doc": "阿里云通义数字人（付费）：https://www.aliyun.com/product/avatar",
+    "access_key": "",
+    "secret": "",
+    "avatar_id": "",
+    "region": "cn-hangzhou"
+  }
+}

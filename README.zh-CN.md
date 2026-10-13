@@ -68,12 +68,16 @@
 
 **能力范围**：工程读写、页面与元素增删改、20 种统计图、矢量图形（shape / path / connector）、
 **内置矢量图标库**（1800+ 个图标，搜索即插成可编辑的 `path` 元素）、表格 / 代码 / 公式、
+音频（讲稿配音 / 背景乐——`audio` 元素；导出 HTML 真播、PPTX 真嵌音轨、本地 UI 有可拖动的音轨面板）、
+数字人播报（**可选可拆分模块** `noedit_core/dh/`——照片 + 讲稿音频 → 说话人视频，作为 `digital_human` 元素插入；开源引擎 LivePortrait / SadTalker（MIT）、零依赖 lightweight 兜底档、付费云 API 三路可选；导出弹窗三选一「纯 PPT / 音频 / 数字人」；许可对比与拆分/卸载步骤见 `noedit_core/dh/README.md`）、
 工程内本地素材、5 种导出格式，以及**内置的浏览器编辑器**（本地起服务，浏览器打开即可
 预览、选中元素改属性）；元素动画（`anim`）与微场景（`scene`）——
 **HTML 一定动；PPTX 里微场景会动**（核心自动抓帧合成 GIF 内嵌），PDF / PNG / SVG 取静态帧。
 
 **不含**：AI 自动生成内容（含场景代码 / 封面帧）、全局素材库、模板、截图复核、桌面客户端。
-（微场景可用的内置 JS 库按需**联网下载到本地缓存**后使用，见 `install_scene_lib`。）
+（微场景可用的内置 JS 库按需**联网下载到本地缓存**后使用，见 `install_scene_lib`。
+核心本身也不生成图片——但如果 agent 自带搜图 / 生图能力，skill 会主动用它补「照片感」配图并导入工程，
+见 [references/image-workflow.md](skill/references/image-workflow.md)。）
 
 ## 演示
 
@@ -172,6 +176,7 @@ noedit_core/
 │  └─ core/                # 核心实现：projects / export / actions / element_schema /
 │                          #   assets / icon_catalog / shape_outline / connector_geom / store ...
 │  └─ web/                 # 渲染期资源：element-schema.json、icon-catalog*.json、render-kit、katex
+│  └─ dh/                  # 可选数字人模块（可拆分：lightweight / liveportrait / sadtalker / cloud 四档引擎）
 ├─ skill/                  # Agent Skill：怎么用这套核心（SKILL.md + references/）
 └─ tests/smoke.py          # 端到端冒烟测试
 ```
@@ -316,6 +321,9 @@ api.export(path, "pptx")
 - [sci-vector-drawing.md](skill/references/sci-vector-drawing.md) — 科研图与矢量绘图硬规范
 - [vector-playbook.md](skill/references/vector-playbook.md) — 矢量能力用法手册
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — 跨领域原理图图谱
+- [image-workflow.md](skill/references/image-workflow.md) — 图片插入工作流（搜图 / 生图 → 落入工程 `assets/` → 插入页面）
+- [audio-workflow.md](skill/references/audio-workflow.md) — 音频插入工作流（TTS 合成 / 本地素材 → 落入工程 `assets/` → 插入页面）
+- [digital-human-workflow.md](skill/references/digital-human-workflow.md) — 数字人播报工作流（照片 + 讲稿 → dh 模块生成 → 落入工程 → 插入页面；含引擎选择与许可红线）
 
 ## 作为 Agent Skill 使用
 
@@ -349,11 +357,12 @@ python packaging/build_skill.py     # 生成 dist/noedit-core/ 与 dist/noedit-c
 可用 `NOEDIT_CORE_ROOT` / `NOEDIT_CORE_PROJECTS` 覆盖。
 
 **怎么用**——装好后直接对 agent 说需求即可（例如「做一份关于 X 的 10 页 PPT 并导出 pptx」），
-agent 会自行遵循 [`skill/SKILL.md`](skill/SKILL.md)。三条要点：
+agent 会自行遵循 [`skill/SKILL.md`](skill/SKILL.md)。四条要点：
 
 1. **落笔的就是 agent 自己**——核心不生成内容，元素 JSON 由 agent 写。
 2. **「会动」的：HTML 一定动，PPTX 里微场景也动**——元素动画（`anim`）与微场景（`scene`）导 HTML 会跑；PPTX 里微场景由核心自动抓帧合成 GIF 内嵌，PDF / PNG / SVG 是静态帧（微场景取 `props.poster`）。
 3. **素材只有工程内本地副本**——`import_asset` 后把 `relPath` 写进 `props.src`，随工程文件夹迁移。
+4. **agent 自带搜图 / 生图能力时会主动使用**——封面视觉、实景等「照片感」配图由 agent 搜图 / 生图后，先经 `import_asset` / `upload_asset` 落进 `assets/` 再引用；结构图 / 原理图 / 流程图仍然必须用矢量。详见 `SKILL.md`「图片策略」与 [references/image-workflow.md](skill/references/image-workflow.md)。
 
 ## 自测
 

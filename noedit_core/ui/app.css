@@ -230,6 +230,60 @@ body {
 .list .empty { color: var(--muted); font-size: 12px; padding: 10px 8px; cursor: default; display: block; }
 .list .empty:hover { background: transparent; }
 
+/* ---------------- 音轨面板（本页 audio 元素的开始时间轴） ---------------- */
+.tracks {
+  flex: 0 0 auto; max-height: 180px; overflow: auto;
+  border-top: 1px solid var(--line-2);
+  padding: 6px 8px 4px 8px;
+  background: #fafbfd;
+}
+.tracks-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; color: var(--ink);
+  margin-bottom: 2px;
+}
+.tracks-note { color: var(--muted); font-weight: 400; font-size: 10.5px; }
+.tracks-hint { color: var(--muted); font-size: 10.5px; padding: 3px 0 2px 0; }
+.tracks-scale {
+  position: relative; height: 12px; margin-left: 86px; margin-right: 8px;
+}
+.tracks-tick {
+  position: absolute; top: 0; font-size: 9.5px; color: var(--muted);
+  transform: translateX(-50%);
+  border-left: 1px solid var(--line-2); padding-left: 3px; height: 10px;
+}
+.tracks-tick.zero { border-left-color: transparent; }
+.tracks-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0;
+}
+.tracks-label {
+  flex: 0 0 80px; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11px; color: var(--ink); cursor: pointer;
+}
+.tracks-label:hover { color: var(--accent-dark); }
+.tracks-lane {
+  flex: 1 1 auto; position: relative; height: 26px; margin-right: 8px;
+  background: repeating-linear-gradient(to right, #eef2f8 0, #eef2f8 1px, transparent 1px, transparent 100%);
+  background-size: 10% 100%;
+  border-radius: 6px;
+}
+.tracks-block {
+  position: absolute; top: 2px; height: 22px; min-width: 34px;
+  display: flex; align-items: center; gap: 5px;
+  background: linear-gradient(180deg, #5b8cf6, #3f6fd8);
+  color: #fff; font-size: 10px;
+  border-radius: 11px; padding: 0 9px 0 6px;
+  cursor: grab; touch-action: none; user-select: none;
+  box-shadow: 0 1px 3px rgba(30, 60, 120, .25);
+  white-space: nowrap;
+}
+.tracks-block.dragging { cursor: grabbing; z-index: 2; }
+.tracks-block.active { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tracks-ic { font-size: 11px; line-height: 1; }
+.tracks-sec { font-variant-numeric: tabular-nums; }
+
 /* ---------------- 页面缩略图 ---------------- */
 .list-pages li { align-items: center; gap: 10px; padding: 7px 8px; }
 .thumb {
@@ -537,3 +591,47 @@ body {
 .list::-webkit-scrollbar-track, .props-body::-webkit-scrollbar-track,
 .stage-box::-webkit-scrollbar-track, .recent::-webkit-scrollbar-track,
 .tree::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------------- 演示模式弹窗（导出前选 纯PPT / 音频 / 数字人） ---------------- */
+.modal-back {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.modal {
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.35);
+  padding: 22px 24px 18px 24px;
+  width: min(560px, calc(100vw - 48px));
+  max-height: calc(100vh - 60px); overflow: auto;
+}
+.modal-title { font-size: 16px; font-weight: 700; color: var(--ink); }
+.mode-sub { font-size: 12.5px; color: var(--muted); margin: 4px 0 14px 0; }
+.mode-cards { display: flex; flex-direction: column; gap: 10px; }
+.mode-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "emoji name" "emoji desc";
+  align-items: center; column-gap: 12px;
+  border: 1.5px solid var(--line-2); border-radius: 10px;
+  padding: 10px 12px; cursor: pointer;
+  transition: border-color .12s, background .12s, opacity .12s;
+}
+.mode-card:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.mode-card:hover { border-color: var(--accent); }
+.mode-card input { position: absolute; opacity: 0; pointer-events: none; }
+.mode-card.dim { opacity: 0.55; }
+.mode-emoji { grid-area: emoji; font-size: 20px; width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 9px; background: var(--accent-soft); color: var(--accent-dark);
+  font-weight: 700; }
+.mode-name { grid-area: name; font-size: 14px; font-weight: 600; color: var(--ink); }
+.mode-desc { grid-area: desc; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.mode-hint { grid-column: 1 / -1; font-size: 11.5px; color: #b07a2a; margin-top: 6px; }
+.mode-remember {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12.5px; color: var(--muted);
+  margin: 14px 0 0 0; cursor: pointer; user-select: none;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }

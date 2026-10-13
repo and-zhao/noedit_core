@@ -68,6 +68,8 @@
 
 **Scope**: project read/write, page & element CRUD, 20 chart types, vector graphics (shape / path / connector),
 a **built-in vector icon library** (1800+ icons — search and insert as editable `path` elements), tables / code / math,
+audio (voice-over / background music — `audio` elements; the exported HTML really plays, PPTX embeds a real audio track, and the local UI shows a drag-able audio-track panel),
+digital-human presenters (an **optional, splittable module** `noedit_core/dh/` — photo + narration audio → a talking-head video inserted as a `digital_human` element; open-source engines LivePortrait / SadTalker (MIT), a zero-dependency lightweight fallback, or paid cloud APIs; the export dialog asks plain / audio / digital-human mode; see `noedit_core/dh/README.md` for the license table and split/uninstall steps),
 project-local assets, 5 export formats, and a **built-in browser editor** (start a local server, open it in the browser to
 preview and edit element properties by clicking). Element animation (`anim`) and micro-scenes (`scene`):
 **HTML always animates; micro-scenes animate inside PPTX too** (the core auto-captures frames and embeds a GIF), while
@@ -75,7 +77,9 @@ PDF / PNG / SVG take a static frame.
 
 **Not included**: AI content generation (incl. scene code / cover frames), a global asset library, templates, screenshot
 review, a desktop client. (The built-in JS libraries used by micro-scenes are **downloaded on demand into a local cache**;
-see `install_scene_lib`.)
+see `install_scene_lib`. The core does not generate images either — but if your agent carries image-search / image-generation
+tools, the skill will use them proactively for photo-style visuals and import the results into the project; see
+[references/image-workflow.md](skill/references/image-workflow.md).)
 
 ## Demo
 
@@ -175,6 +179,7 @@ noedit_core/
 │  └─ core/                # Core implementation: projects / export / actions / element_schema /
 │                          #   assets / icon_catalog / shape_outline / connector_geom / store ...
 │  └─ web/                 # Render-time assets: element-schema.json, icon-catalog*.json, render-kit, katex
+│  └─ dh/                  # OPTIONAL digital-human module (splittable; lightweight / liveportrait / sadtalker / cloud engines)
 ├─ skill/                  # Agent Skill: how to use this core (SKILL.md + references/)
 └─ tests/smoke.py          # End-to-end smoke test
 ```
@@ -321,6 +326,9 @@ Full signatures, return shapes and field dictionaries: [`skill/references/`](ski
 - [sci-vector-drawing.md](skill/references/sci-vector-drawing.md) — hard rules for scientific figures and vector drawing
 - [vector-playbook.md](skill/references/vector-playbook.md) — practical guide to the vector capabilities
 - [diagram-atlas.md](skill/references/diagram-atlas.md) — cross-domain diagram atlas
+- [image-workflow.md](skill/references/image-workflow.md) — image insertion workflow (image search / generation → import into `assets/` → place on the canvas)
+- [audio-workflow.md](skill/references/audio-workflow.md) — audio insertion workflow (TTS synthesis / local files → import into `assets/` → place on the canvas)
+- [digital-human-workflow.md](skill/references/digital-human-workflow.md) — digital-human presenter workflow (photo + narration → dh module → `assets/` → page element; engine picks & license red lines)
 
 ## Use it as an Agent Skill
 
@@ -355,11 +363,12 @@ data (`settings.json` / `ui.json` / locks) goes to `~/.noedit_core/`; the defaul
 next to the skill folder. Override with `NOEDIT_CORE_ROOT` / `NOEDIT_CORE_PROJECTS`.
 
 **Use it** — once installed, just tell the agent what you want (e.g. "make a 10-page deck about X and
-export pptx"); it follows [`skill/SKILL.md`](skill/SKILL.md) by itself. Three rules worth knowing:
+export pptx"); it follows [`skill/SKILL.md`](skill/SKILL.md) by itself. Four rules worth knowing:
 
 1. **You (the agent) write the content** — the core does not generate content; the element JSON is written by the agent.
 2. **What "moves": HTML always animates, and micro-scenes animate inside PPTX too** — element animation (`anim`) and micro-scenes (`scene`) run in exported HTML; inside PPTX the core auto-captures frames and embeds a GIF; PDF / PNG / SVG are a static frame (micro-scenes use `props.poster`).
 3. **Assets are project-local copies only** — after `import_asset`, write the `relPath` into `props.src`; it travels with the project folder.
+4. **If the agent has image-search / image-generation tools, the skill uses them proactively** — photo-style visuals (cover art, real-world scenes) are searched or generated, then imported into `assets/` via `import_asset` / `upload_asset` before being referenced; structural / flow / architecture diagrams stay vector-only. See the "图片策略" section in `SKILL.md` and [references/image-workflow.md](skill/references/image-workflow.md).
 
 ## Self-test
 

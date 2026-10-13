@@ -312,8 +312,11 @@ class _Handler(BaseHTTPRequestHandler):
         args = payload.get("args") or []
         if not isinstance(args, list):
             args = [args]
+        kwargs = payload.get("kwargs") or {}
+        if not isinstance(kwargs, dict):
+            kwargs = {}
         try:
-            result = ctx.dispatch(method, args)
+            result = ctx.dispatch(method, args, kwargs)
             self._send_json({"ok": True, "result": result})
         except CoreError as exc:
             self._send_json({"ok": False, "message": str(exc)})
@@ -581,7 +584,7 @@ class LocalUI:
         self._publish()  # 切换后同步注册文件里的 project 字段
 
     # ---------------------------------------------------------- 业务分发
-    def dispatch(self, method: str, args: list):
+    def dispatch(self, method: str, args: list, kwargs: dict | None = None):
         if method == "ping":
             return {"app": APP_NAME}
         if method == "open_project":
@@ -610,7 +613,7 @@ class LocalUI:
         fn = _DIRECT.get(method)
         if fn is None:
             raise CoreError(f"未知后端方法：{method}")
-        return fn(*args)
+        return fn(*args, **(kwargs or {}))
 
     def upload_asset(self, name: str, data_url: str) -> dict:
         """浏览器上传一段素材（dataURL）→ 写进工程 assets/ 并登记。

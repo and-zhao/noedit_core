@@ -1,0 +1,20 @@
+# 本地 GPU 引擎依赖（liveportrait / sadtalker）
+# 1) lightweight 档依赖（保证随时可降级跑通）
+Pillow>=10.0
+
+# 2) 深度学习栈——按你的 CUDA 版本从 https://pytorch.org 选对应命令安装，
+#    下面以 CUDA 12.1 为例（CPU-only 用户请改装 CPU 版 torch）：
+# torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cu121
+torch
+torchvision
+
+# 3) 引擎仓库自带的 requirements：
+#    LivePortrait: https://github.com/KlingAIResearch/LivePortrait  (requirements.txt)
+#    SadTalker  : https://github.com/OpenTalker/SadTalker          (requirements.txt)
+opencv-python
+numpy
+yacs
+imageio
+imageio-ffmpeg
+
+# 另需系统安装 ffmpeg 并加入 PATH
