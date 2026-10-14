@@ -1483,8 +1483,27 @@ _AUDIO_RUNTIME = """
     try { audio.volume = Math.max(0, Math.min(1, num(host, 'data-ac-volume', 1))); } catch (e) { }
     var start = Math.max(0, num(host, 'data-ac-start', 0));
     var auto = host.getAttribute('data-ac-autoplay') !== '0';
-    var timer = null, armed = false;
-    function play() { try { audio.play(); } catch (e) { } }
+    var timer = null, armed = false, pending = false;
+    function unlockOnce() {
+      // 带声音的自动播放会被浏览器 reject（页内还没有任何用户手势）。挂一次性解锁：
+      // 页面上第一次点击 / 按键就补播，避免旁白整场静默不响。
+      if (pending) return;
+      pending = true;
+      var go = function () {
+        pending = false;
+        document.removeEventListener('pointerdown', go);
+        document.removeEventListener('keydown', go);
+        if (armed) { try { audio.play(); } catch (e) { } }
+      };
+      document.addEventListener('pointerdown', go);
+      document.addEventListener('keydown', go);
+    }
+    function play() {
+      try {
+        var p = audio.play();
+        if (p && p.catch) p.catch(function () { if (armed) unlockOnce(); });
+      } catch (e) { if (armed) unlockOnce(); }
+    }
     function enter() {
       if (!auto) return;
       if (!armed) { armed = true; timer = setTimeout(play, start * 1000); }
@@ -1520,8 +1539,26 @@ _DH_RUNTIME = """
     if (!video) return;
     var delay = Math.max(0, num(host, 'data-ac-pagestart', 0));
     var auto = host.getAttribute('data-ac-autoplay') !== '0';
-    var timer = null, armed = false;
-    function play() { try { var p = video.play(); if (p && p.catch) p.catch(function () { }); } catch (e) { } }
+    var timer = null, armed = false, pending = false;
+    function unlockOnce() {
+      // 同 audio：带声音的 <video> 自动播放会被浏览器 reject，第一次手势时补播。
+      if (pending) return;
+      pending = true;
+      var go = function () {
+        pending = false;
+        document.removeEventListener('pointerdown', go);
+        document.removeEventListener('keydown', go);
+        if (armed) { try { video.play(); } catch (e) { } }
+      };
+      document.addEventListener('pointerdown', go);
+      document.addEventListener('keydown', go);
+    }
+    function play() {
+      try {
+        var p = video.play();
+        if (p && p.catch) p.catch(function () { if (armed) unlockOnce(); });
+      } catch (e) { if (armed) unlockOnce(); }
+    }
     function enter() {
       if (!auto) return;
       if (!armed) { armed = true; timer = setTimeout(play, delay * 1000); }

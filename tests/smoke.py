@@ -157,6 +157,7 @@ def main() -> None:
     _smoke_server(path)
     _smoke_icons(path)
     _smoke_media(path)
+    _smoke_dh(path)
 
     print("\nSMOKE OK —— 核心可用。")
 
@@ -204,6 +205,18 @@ def _smoke_media(path: str) -> None:
     html = Path(api.export(path, "html")["path"]).read_text(encoding="utf-8")
     assert html.count("<div") == html.count("</div>"), "导出的静态 HTML 里 div 必须配平"
     print("[17] image 元素 HTML 片段标签闭合 ✓")
+
+    # 导到工程外 = 用 ../<工程>/assets/ 引素材，单发这一个 HTML 会丢媒体：核心必须回警告
+    outside = api.export(path, "html", out_dir=str(ROOT / "_html_outside"))
+    assert outside["warnings"] and "assets" in outside["warnings"][0], outside
+    assert not api.export(path, "html")["warnings"], "导到工程内不该有相对路径警告"
+    print("[17b] 工程外 HTML 导出点名「相对路径会丢媒体」 ✓")
+
+    # 有声媒体自动播放被浏览器拒时不许静默：得挂一次性手势解锁（旁白 / 数字人同理）
+    for rt in (prj._AUDIO_RUNTIME, prj._DH_RUNTIME):
+        assert "p.catch(function () { if (armed) unlockOnce(); })" in rt, rt[:60]
+        assert "addEventListener('pointerdown'" in rt and "addEventListener('keydown'" in rt
+    print("[18] 自动播放被拒时的一次性手势解锁 ✓")
 
 
 def _smoke_icons(path: str) -> None:
@@ -285,6 +298,46 @@ def _smoke_server(path: str) -> None:
         print("[13] 本地 UI 服务（/api/ping、/api/call 增改删、/canvas 预览）✓")
     finally:
         ui.stop()
+
+
+def _smoke_dh(path: str) -> None:
+    """[19] 数字人成片：out_name 不写扩展名也要产出 .mp4（ffmpeg 按扩展名选封装格式）。"""
+    import math
+    import struct
+    import wave
+
+    from noedit_core.dh import validator
+
+    status = validator.check_all()
+    if not any(v == "ok" for v in status.values()):
+        print(f"[19] 数字人跳过：没有可用引擎 {status}")
+        return
+
+    photo, audio = ROOT / "dh_photo.png", ROOT / "dh_vo.wav"
+    try:
+        from PIL import Image, ImageDraw
+
+        im = Image.new("RGB", (512, 512), "#223049")
+        d = ImageDraw.Draw(im)
+        for i in range(0, 500, 10):
+            y = 180 + int(90 * math.sin(i / 48.0))
+            d.ellipse((i, y, i + 8, y + 8), fill="#9db4d4")
+        im.save(photo)
+        with wave.open(str(audio), "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(22050)
+            w.writeframes(b"".join(struct.pack("<h", int(11000 * math.sin(i / 22)))
+                                   for i in range(22050)))
+        r = api.generate_digital_human(str(photo), str(audio), engine="auto",
+                                       out_dir=str(ROOT), out_name="dh-noext")
+    except Exception as exc:  # noqa: BLE001  外部依赖（ffmpeg/Pillow）不齐时不算失败
+        print(f"[19] 数字人跳过：{exc}")
+        return
+    assert str(r["video"]).lower().endswith(".mp4"), f"缺扩展名时应自动补 .mp4：{r}"
+    assert Path(r["video"]).stat().st_size > 2048, r
+    print(f"[19] 数字人 auto → {r.get('engine')}，out_name 自动补扩展名 ✓ "
+          f"{Path(r['video']).name} + {Path(r['poster']).name if r.get('poster') else '无封面帧'}")
 
 
 if __name__ == "__main__":
