@@ -64,6 +64,8 @@ def generate(image: str, audio: str, engine: str = "auto", out_dir: Optional[str
         stem_img = os.path.splitext(os.path.basename(image))[0]
         stem_aud = os.path.splitext(os.path.basename(audio))[0]
         out_name = ("%s_%s.mp4" % (stem_img[:24], stem_aud[:24])).replace(" ", "_")
+    elif not out_name.lower().endswith((".mp4", ".mov", ".webm", ".gif")):
+        out_name += ".mp4"        # ffmpeg 靠扩展名选 muxer，缺了会直接报 Invalid argument
     out_path = os.path.join(out_dir, out_name)
 
     status = validator.check_all()

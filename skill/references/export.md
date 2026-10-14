@@ -7,8 +7,8 @@ api.export(path, fmt="pptx", out_dir="", **options)
 `fmt ∈ html | pdf | pptx | png | svg`。默认落到**工程内的 `export/` 目录**（`<工程>/export/`），`out_dir` 可指定其它目录。
 文件名默认取工程名；同名文件已存在时自动加 ` (2)` / ` (3)`，**不会覆盖上一次导出**。
 
-返回统一结构：`{"ok", "path", "message", "format"}`；`png` / `svg` 额外带 `paths`（多页路径列表）与 `warnings`。
-`ok=False` 时 `path` 为空、`message` 说明原因。
+返回统一结构：`{"ok", "path", "message", "format"}`；`html` / `png` / `svg` 额外带 `warnings`（`png` / `svg` 还带 `paths` 多页路径列表）。
+`ok=False` 时 `path` 为空、`message` 说明原因。**`warnings` 非空要如实转达用户**，别当没有。
 
 | fmt | 产物 | 运行期依赖 |
 | --- | --- | --- |
@@ -23,8 +23,10 @@ api.export(path, fmt="pptx", out_dir="", **options)
 ## html
 
 - **自包含**：渲染脚本（render-kit / tokens）已内联进 HTML，不需要 `web/` 目录。
-- **但图片素材仍按相对路径引用**：导出到 `<工程>/export/` 时，HTML 用 `../assets/xxx` 指回工程素材。
-  所以这份 HTML **要和工程文件夹一起搬**；单拎出来会丢图。
+- **但图片 / 音频 / 视频素材仍按相对路径引用**：导出到 `<工程>/export/` 时，HTML 用 `../assets/xxx` 指回工程素材。
+  所以这份 HTML **要和工程文件夹一起搬**；单拎出来会丢图、丢旁白、丢数字人。
+- `out_dir` 落在**工程目录之外**时，返回的 `warnings` 会点名这条（前缀是 `../<工程>/`）；
+  要「单文件发出去就能放」就导 **PPTX**（图片 / 音频 / 视频 / 场景 GIF 全部内嵌）。
 - 是「交付真相」——所有页面都是真 HTML/CSS，浏览器里所见即最终效果，也是本地预览的首选。
 
 ---

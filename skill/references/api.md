@@ -309,8 +309,12 @@ api.icon_insert(path, hit["id"], x=120, y=200, size=90, color="#c0392b")
 - `False`：不内嵌，微场景退回静态 `props.poster`。
 - `dict`：`{元素id: GIF 文件路径}`，用你现成的动图，跳过抓帧。
 
-返回统一含 `{"ok", "path", "message", "format"}`；`png` / `svg` 还带 `paths`（多页路径列表）与 `warnings`。
+返回统一含 `{"ok", "path", "message", "format"}`；`html` / `png` / `svg` 还带 `warnings`（`png` / `svg` 另带 `paths` 多页路径列表）。
 `ok=False` 时 `path` 为空、`message` 说明原因（缺依赖 / 缺浏览器 / 无页面等）。详见 [export.md](export.md)。
+
+**`html` 的 `warnings` 必看**：`out_dir` 在工程目录之外时，HTML 只能用 `../<工程>/assets/…` 相对路径引素材，
+核心会回一条警告——**单独发这一个 HTML 会丢图、丢声音、丢视频**。要么把整个工程目录（含 `assets/`）打包发，
+要么改导 PPTX（图片 / 音频 / 视频 / 场景 GIF 全部内嵌，单文件可发）。
 
 抓帧失败的单个场景**不会中断导出**——该场景退回 `poster`，其余照常，`message` 会说明「已内嵌 N 个 / M 个失败」。
 
@@ -404,6 +408,7 @@ HTML 导出一定动；**PPTX 里也能动**——核心把场景逐帧抓下来
 
 `poster` 是从成片抽的封面帧（PPTX / PDF / PNG 只认这张静态图）；抽不到为空串，
 之后可用 `attach_dh_posters` 补。**poster 不要填 mp4 路径**。
+`out_name` 可以不写扩展名（`dh-p01` 会自动补成 `dh-p01.mp4`）——ffmpeg 靠扩展名选封装格式。
 失败抛 `CoreError`，消息里带各档的失败原因。
 
 ---

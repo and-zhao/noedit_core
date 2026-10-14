@@ -95,7 +95,13 @@ def export_static_html(project_path: str, manifest: dict, out_path: str = "", ou
         target = _unique_path(target.with_suffix(".html"))
     prefix = _prefix_for(root, target.parent)
     target.write_text(render_static_html(manifest, prefix), encoding="utf-8")
-    return {"ok": True, "path": str(target), "message": f"已导出静态 HTML：{target}", "format": "html"}
+    warns = []
+    if os.path.relpath(target.parent, root).startswith(".."):
+        warns.append(
+            "HTML 以相对路径引用工程素材（前缀 %s）：单独发送这一个文件会丢图、丢声音、丢视频，"
+            "请把整个工程目录（含 assets/）一起打包，或改用 PPTX（媒体已内嵌）。" % prefix)
+    return {"ok": True, "path": str(target), "warnings": warns,
+            "message": f"已导出静态 HTML：{target}", "format": "html"}
 
 
 # ---------------------------------------------------------------- PDF
