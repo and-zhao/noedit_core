@@ -205,6 +205,12 @@ def _smoke_media(path: str) -> None:
     assert html.count("<div") == html.count("</div>"), "导出的静态 HTML 里 div 必须配平"
     print("[17] image 元素 HTML 片段标签闭合 ✓")
 
+    # 有声媒体自动播放被浏览器拒时不许静默：得挂一次性手势解锁（旁白 / 数字人同理）
+    for rt in (prj._AUDIO_RUNTIME, prj._DH_RUNTIME):
+        assert "p.catch(function () { if (armed) unlockOnce(); })" in rt, rt[:60]
+        assert "addEventListener('pointerdown'" in rt and "addEventListener('keydown'" in rt
+    print("[18] 自动播放被拒时的一次性手势解锁 ✓")
+
 
 def _smoke_icons(path: str) -> None:
     """[14] 矢量图标库：分组 / 搜索 / 插入可编辑 path（含多色分组）。"""
