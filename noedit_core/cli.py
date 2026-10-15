@@ -112,13 +112,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     ex = sub.add_parser("export", help="导出")
     ex.add_argument("path")
-    ex.add_argument("--fmt", default="pptx", choices=["html", "pdf", "pptx", "png", "svg"])
+    ex.add_argument("--fmt", default="pptx", choices=["html", "pdf", "pptx", "png", "svg", "video"])
     ex.add_argument("--out", default="")
     ex.add_argument("--pages", default="")
     ex.add_argument("--dpi", type=int, default=300)
     ex.add_argument("--transparent", action="store_true")
     ex.add_argument("--no-scene-gif", action="store_true",
                     help="导出 pptx 时不抓帧内嵌微场景 GIF（只留封面帧）")
+    ex.add_argument("--fps", type=int, default=0, help="导出 video 用的帧率，默认 25")
+    ex.add_argument("--width", type=int, default=0, help="导出 video 的宽（像素），默认 1920")
+    ex.add_argument("--tail", type=float, default=0.0, help="导出 video：旁白念完后每页再停的秒数，默认 0.8")
+    ex.add_argument("--min-seconds", type=float, default=0.0,
+                    help="导出 video：没有旁白的页停留几秒，默认 4")
+    ex.add_argument("--keep-segments", action="store_true", help="导出 video 时保留逐页分段 mp4")
 
     sl = sub.add_parser("scene-libs", help="列出微场景库及本地缓存状态")
     sl.add_argument("--json", action="store_true", help="保留此参数以便统一用法（结果本就是 JSON）")
@@ -221,6 +227,20 @@ def main(argv: list[str] | None = None) -> int:
                 opts = {"pages": args.pages, "dpi": args.dpi, "transparent": args.transparent}
             if args.fmt == "pptx" and args.no_scene_gif:
                 opts["scene_gifs"] = False
+            if args.fmt == "video":
+                opts = {"dpi": args.dpi}
+                if args.fps:
+                    opts["fps"] = args.fps
+                if args.width:
+                    opts["width"] = args.width
+                if args.tail:
+                    opts["tail"] = args.tail
+                if args.min_seconds:
+                    opts["min_seconds"] = args.min_seconds
+                if args.keep_segments:
+                    opts["keep_segments"] = True
+                if args.pages:
+                    opts["pages"] = args.pages
             _dump(api.export(args.path, fmt=args.fmt, out_dir=args.out, **opts))
         elif args.cmd == "scene-libs":
             _dump(api.scene_libs())

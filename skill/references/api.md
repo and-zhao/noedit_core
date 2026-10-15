@@ -300,8 +300,11 @@ api.icon_insert(path, hit["id"], x=120, y=200, size=90, color="#c0392b")
 
 ### `export(path, fmt="pptx", out_dir="", scene_gifs=None, **options) -> dict`
 
-`fmt ∈ html | pdf | pptx | png | svg`；默认落到**工程内的 `export/` 目录**，`out_dir` 可改。
+`fmt ∈ html | pdf | pptx | png | svg | video`；默认落到**工程内的 `export/` 目录**，`out_dir` 可改。
 `png` / `svg` 额外支持 `pages`（`"1"` / `"1,3"` / `"2-5"`，空 = 全部）、`dpi`（96/150/300/600）、`transparent`。
+`video` 支持 `fps` / `width` / `dpi` / `tail` / `min_seconds` / `captions` / `font` / `font_size` / `page_seconds` /
+`preset` / `crf` / `keep_segments` / `timeout`，**只出整份 deck**（传 `pages` 会直接 `ok=False`），
+字幕取每条 `audio` / `digital_human` 的 `props.captions`，详见 [export.md](export.md) 的 video 一节。
 
 `scene_gifs` 只对 `pptx` 生效，控制**微场景动图**：
 
@@ -309,7 +312,8 @@ api.icon_insert(path, hit["id"], x=120, y=200, size=90, color="#c0392b")
 - `False`：不内嵌，微场景退回静态 `props.poster`。
 - `dict`：`{元素id: GIF 文件路径}`，用你现成的动图，跳过抓帧。
 
-返回统一含 `{"ok", "path", "message", "format"}`；`html` / `png` / `svg` 还带 `warnings`（`png` / `svg` 另带 `paths` 多页路径列表）。
+返回统一含 `{"ok", "path", "message", "format"}`；`html` / `png` / `svg` / `video` 还带 `warnings`（`png` / `svg` 另带 `paths` 多页路径列表）。
+`video` 另带 `duration` / `fps` / `width` / `height` 和逐页表 `pages: [{"page","seconds","tracks","cues"}]`——汇报成片时把这张表转给用户。
 `ok=False` 时 `path` 为空、`message` 说明原因（缺依赖 / 缺浏览器 / 无页面等）。详见 [export.md](export.md)。
 
 **`html` 的 `warnings` 必看**：`out_dir` 在工程目录之外时，HTML 只能用 `../<工程>/assets/…` 相对路径引素材，

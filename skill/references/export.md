@@ -4,10 +4,10 @@
 api.export(path, fmt="pptx", out_dir="", **options)
 ```
 
-`fmt ∈ html | pdf | pptx | png | svg`。默认落到**工程内的 `export/` 目录**（`<工程>/export/`），`out_dir` 可指定其它目录。
+`fmt ∈ html | pdf | pptx | png | svg | video`。默认落到**工程内的 `export/` 目录**（`<工程>/export/`），`out_dir` 可指定其它目录。
 文件名默认取工程名；同名文件已存在时自动加 ` (2)` / ` (3)`，**不会覆盖上一次导出**。
 
-返回统一结构：`{"ok", "path", "message", "format"}`；`html` / `png` / `svg` 额外带 `warnings`（`png` / `svg` 还带 `paths` 多页路径列表）。
+返回统一结构：`{"ok", "path", "message", "format"}`；`html` / `png` / `svg` / `video` 额外带 `warnings`（`png` / `svg` 还带 `paths` 多页路径列表）。
 `ok=False` 时 `path` 为空、`message` 说明原因。**`warnings` 非空要如实转达用户**，别当没有。
 
 | fmt | 产物 | 运行期依赖 |
@@ -17,6 +17,7 @@ api.export(path, fmt="pptx", out_dir="", **options)
 | `pdf` | PDF | 本机 **Edge / Chrome**（无头打印） |
 | `png` | 逐页 PNG（可选透明 / 高 DPI） | 本机 **Edge / Chrome**（无头截图） |
 | `svg` | 逐页矢量 SVG | 本机 **Edge / Chrome** |
+| `video` | 一条带旁白与烧制字幕的 mp4（科普视频成片） | 本机 **Edge / Chrome** + **ffmpeg**（含 libass、libx264；`pip install imageio-ffmpeg` 即可） |
 
 ---
 
@@ -64,6 +65,55 @@ api.export(path, fmt="pptx", out_dir="", **options)
 api.export(path, "png", pages="1,3", dpi=300, transparent=True)
 api.export(path, "svg", pages="")          # 全部页
 ```
+
+---
+
+## video（mp4 成片，需 ffmpeg）
+
+把一份 deck 变成**会自己讲、带烧制字幕**的 mp4：AI 写完稿 + 旁白，就能直接出一条科普视频。
+
+```python
+res = api.export(path, "video")                       # 全 14 页，约 15~20 分钟
+res = api.export(path, "video", captions=False)       # 不要字幕
+res = api.export(path, "video", width=1280, preset="ultrafast")   # 快糙预览
+```
+命令行：`python main.py export <工程目录> --fmt video [--fps 25] [--width 1920] [--tail 0.8] [--min-seconds 4] [--keep-segments]`
+
+**做法与取舍**（逐页合成再拼接，不逐帧抓动画）：
+每页一张 300 DPI 静帧 → ffmpeg 缓推运镜（Ken Burns）→ 按 `props.captions` 烧 ASS 字幕
+→ 该页 audio / 数字人音轨按 `startAt` 摆位混音 → 逐页编成**参数完全一致**的分段 → `concat -c copy` 无损拼接。
+不逐帧抓动画是因为：14 页 × 30 秒 × 25 帧 = 一万次无头 `seek()`，代价与收益完全不成比例；
+「画面会动」这件事 PPTX 的场景 GIF 已经解决，mp4 这条线的价值是**讲稿 + 配音 + 字幕一次到位**。
+
+- **字幕文本只认 `props.captions`**：给每条 `audio` / `digital_human` 元素填上它念的原文，
+  没填的页会在 `warnings` 里点名「这页不出字幕」。断条规则：句末标点切 → 超 22 字再按逗号断 →
+  按字数把音频时长摊给各句（TTS 给不了逐句时间戳，这个精度观众看不出）。
+- **页时长 = 该页最长的非循环音轨 + `tail`**；`loop=True` 的背景乐不驱动页长。
+  没有旁白的页停 `min_seconds` 秒（默认 4）并出一条 warning——成片能放，但那几页是哑的。
+- **数字人页不运镜**：静帧当底图，把它的 mp4 按元素坐标叠在画面上（画布 1280×720 → 输出 1920×1080 等比 ×1.5），
+  声音直接用这条视频的音轨。运镜会让叠层与版面错位，所以这类页画面是定住的。
+- 画面层会**剥掉 `audio` / `digital_human` 元素本身**（播放控件不该出现在成片里），其余元素照常。
+- `scene`（微场景）在视频里是**静帧**（浏览器截到的那一帧），不会动。
+- **只出整份 deck**：传 `pages` 直接 `ok=False` 说明，不会悄悄漏页。要单页画面导 `fmt="png"`。
+- 依赖缺失一律 `ok=False` + 明确原因（没 ffmpeg / 没浏览器 / 某页静帧失败 / 某页合成失败），
+  **绝不出一个静音黑屏的 mp4**。成片还会做一次体检：时长与预期比对（偏差超 5% 报 warning）+ 抽帧看亮度（接近全黑报 warning）。
+
+| option | 默认 | 说明 |
+| --- | --- | --- |
+| `fps` | `25` | 帧率 |
+| `width` | `1920` | 输出宽（高按画布比例算，1280×720 → 1080） |
+| `dpi` | `300` | 静帧 DPI，预览时可降到 150 |
+| `tail` | `0.8` | 旁白念完后每页再停的秒数 |
+| `min_seconds` | `4.0` | 无旁白页的停留秒数 |
+| `captions` | `True` | 传 `False` 整体关掉字幕 |
+| `font` / `font_size` | `Microsoft YaHei` / 高的 1/20 | 字幕样式 |
+| `page_seconds` | 无 | 强制页长：一个数，或逐页的列表（想卡固定节奏时用） |
+| `preset` / `crf` | `veryfast` / `21` | x264 参数 |
+| `keep_segments` | `False` | `True` 时把逐页分段 mp4 也复制到导出目录（排查哪页坏了） |
+| `timeout` | `1800` | 单页编码上限（秒） |
+
+返回除通用字段外还有：`duration` / `fps` / `width` / `height`，以及逐页表
+`pages: [{"page", "seconds", "tracks", "cues"}]`——**汇报成片时把这张表转给用户**，哪页几秒、几条音轨、几条字幕一目了然。
 
 ---
 

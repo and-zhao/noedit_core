@@ -158,6 +158,7 @@ def main() -> None:
     _smoke_icons(path)
     _smoke_media(path)
     _smoke_dh(path)
+    _smoke_video()
 
     print("\nSMOKE OK —— 核心可用。")
 
@@ -338,6 +339,66 @@ def _smoke_dh(path: str) -> None:
     assert Path(r["video"]).stat().st_size > 2048, r
     print(f"[19] 数字人 auto → {r.get('engine')}，out_name 自动补扩展名 ✓ "
           f"{Path(r['video']).name} + {Path(r['poster']).name if r.get('poster') else '无封面帧'}")
+
+
+def _smoke_video() -> None:
+    """[20] 视频导出：字幕时间不变量 + 三页成片（有声 / 静音 / 缺字幕）+ 选页拒绝。"""
+    import math
+    import struct
+    import wave
+
+    from noedit_core.core.video_export import _hms, _timed_cues
+    from noedit_core.dh.media import ffmpeg_exe
+
+    # ASS 的时间戳小数部分是**百分秒**：写成 3 位会被 libass 当成「812 = 8.12 秒」，
+    # 整条字幕表往后滑并互相叠字（真出过这个 bug，故留死条件）。
+    assert _hms(1.812) == "0:00:01.81", _hms(1.812)
+    cues = _timed_cues("第一句。第二句也念一下。第三句故意写得比较长，用来验证它会按逗号再断成两条字幕。", 0.0, 9.0)
+    assert len(cues) >= 4, cues
+    assert all(a < b for a, b, _ in cues), cues
+    assert all(cues[i][1] <= cues[i + 1][0] + 1e-6 for i in range(len(cues) - 1)), cues
+
+    ff, browser = ffmpeg_exe(), _find_browser()
+    if not ff:
+        print("[20] 视频导出跳过：没有 ffmpeg（pip install imageio-ffmpeg）")
+        return
+    if not browser:
+        print("[20] 视频导出跳过：未找到 Edge/Chrome")
+        return
+
+    proj = api.create_project("冒烟视频", str(ROOT))["path"]
+    api.add_page(proj, name="第二页")
+    api.add_page(proj, name="第三页")
+    api.insert(proj, {"type": "text", "x": 80, "y": 60, "w": 900, "h": 80,
+                      "props": {"text": "这一页有旁白和字幕"}}, page_index=0)
+    wav = ROOT / "vo_short.wav"
+    with wave.open(str(wav), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(22050)
+        w.writeframes(b"".join(struct.pack("<h", int(9000 * math.sin(i / 25)))
+                               for i in range(22050 // 2)))
+    rel = api.import_asset(proj, [str(wav)])["imported"][0]["relPath"]
+    api.insert(proj, {"type": "audio", "name": "旁白", "x": 40, "y": 620, "w": 300, "h": 40,
+                      "props": {"src": rel, "captions": "这一句要烧进画面。这一句也要。"}}, page_index=0)
+    api.insert(proj, {"type": "audio", "name": "没填字幕", "x": 40, "y": 620, "w": 300, "h": 40,
+                      "props": {"src": rel}}, page_index=2)
+
+    r = api.export(proj, "video", out_dir=str(ROOT / "_video"), dpi=96,
+                   min_seconds=1.2, tail=0.3, preset="ultrafast", crf=32)
+    assert r["ok"], r
+    rows = {p["page"]: p for p in r["pages"]}
+    assert len(rows) == 3 and rows[1]["cues"] >= 1 and rows[3]["cues"] == 0, r["pages"]
+    assert 1.0 < r["duration"] < 12.0, r
+    assert Path(r["path"]).stat().st_size > 4096, r
+    warn = " | ".join(r["warnings"])
+    assert "没有旁白" in warn, warn          # 第 2 页是哑页，必须点名
+    assert "captions" in warn, warn          # 第 3 页没填字幕，必须点名
+    print(f"[20] 视频导出 ✓ {r['duration']}s / {r['width']}x{r['height']} / 3 页 | {Path(r['path']).name}")
+
+    bad = api.export(proj, "video", pages="1")
+    assert not bad["ok"] and "整份" in bad["message"], bad
+    print("[20] 视频导出拒绝选页（不静默漏页） ✓")
 
 
 if __name__ == "__main__":

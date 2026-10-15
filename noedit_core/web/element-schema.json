@@ -302,7 +302,7 @@
       "w": 320,
       "h": 72,
       "style": { "borderRadius": 36, "background": "#16283F", "borderWidth": 1, "borderColor": "#24466B" },
-      "modelNote": "音频（讲稿配音 / 背景乐 / 音效）。props.src 只认工程内 assets/ 相对路径；进入该页后按 props.startAt 秒自动开始播放（配合 autoplay），导出 HTML 离线可播、PPTX 里真嵌音轨放映可播；PDF / PNG / SVG 里渲染成一个静态音频条（图标 + 名称），不影响版面。AI 合成音频（TTS）先 upload_asset 落进 assets/ 再引用；一页配多条音频时用 startAt 错开。",
+      "modelNote": "音频（讲稿配音 / 背景乐 / 音效）。props.src 只认工程内 assets/ 相对路径；进入该页后按 props.startAt 秒自动开始播放（配合 autoplay），导出 HTML 离线可播、PPTX 里真嵌音轨放映可播；PDF / PNG / SVG 里渲染成一个静态音频条（图标 + 名称），不影响版面。AI 合成音频（TTS）先 upload_asset 落进 assets/ 再引用；一页配多条音频时用 startAt 错开。要导出 mp4 视频（export fmt=\"video\"）必须填 props.captions（这条音频念的原文），否则成片里这条没有字幕。",
       "sections": [
         { "title": "音频", "rows": [
           { "cols": 1, "fields": [
@@ -319,6 +319,9 @@
           { "cols": 2, "fields": [
             { "path": "props.startAt", "label": "页内开始秒", "widget": "number", "default": 0, "min": 0, "max": 3600, "fallback": 0, "desc": "进入该页后第几秒开始播放（0 = 立即）；多条音频用它错开" },
             { "path": "props.volume", "label": "音量", "widget": "range", "default": 1, "min": 0, "max": 1, "step": 0.05 }
+          ] },
+          { "cols": 1, "fields": [
+            { "path": "props.captions", "label": "讲稿文本", "widget": "text", "default": "", "placeholder": "这段音频念的原文，用于导出视频时烧字幕", "desc": "导出 video（mp4）时按这段文本烧字幕：从本条的 startAt 起、按字数把时长摊到各句。留空则该条不出字幕（画面照常有声音）。" }
           ] }
         ] }
       ]
@@ -329,7 +332,7 @@
       "w": 360,
       "h": 300,
       "style": { "borderRadius": 12 },
-      "modelNote": "数字人播报（一段带声音的说话人视频）。props.src 只认工程内 assets/ 相对路径（由 dh 模块或云端数字人服务生成后 import_asset 落入工程再引用）；props.startAt = 进入该页后第几秒开始播报（与 audio 同语义）；导出 HTML 进视口自动播、PPTX 真嵌视频放映可播可听；PDF / PNG / SVG 里渲染 poster 封面帧 + 名牌。一页最多放 1 个数字人（会抢声音）；默认摆右下角不压正文。生成流程见 noedit_core/dh/README.md（LivePortrait / SadTalker 开源 MIT 可商用，Wav2Lip 严禁商用，Azure / 腾讯云付费）。",
+      "modelNote": "数字人播报（一段带声音的说话人视频）。props.src 只认工程内 assets/ 相对路径（由 dh 模块或云端数字人服务生成后 import_asset 落入工程再引用）；props.startAt = 进入该页后第几秒开始播报（与 audio 同语义）；导出 HTML 进视口自动播、PPTX 真嵌视频放映可播可听；PDF / PNG / SVG 里渲染 poster 封面帧 + 名牌。一页最多放 1 个数字人（会抢声音）；默认摆右下角不压正文。生成流程见 noedit_core/dh/README.md（LivePortrait / SadTalker 开源 MIT 可商用，Wav2Lip 严禁商用，Azure / 腾讯云付费）。导出 mp4 视频（export fmt=\"video\"）时本页画面 = 静帧叠这个视频、声音 = 这个视频的音轨，字幕取 props.captions（数字人页通常没有独立旁白轨，不填就没字幕）。",
       "sections": [
         { "title": "数字人", "rows": [
           { "cols": 1, "fields": [
@@ -350,6 +353,9 @@
           { "cols": 2, "fields": [
             { "path": "props.startAt", "label": "页内开始秒", "widget": "number", "default": 0, "min": 0, "max": 3600, "fallback": 0, "desc": "进入该页后第几秒开始播报（0 = 立即）" },
             { "path": "props.volume", "label": "音量", "widget": "range", "default": 1, "min": 0, "max": 1, "step": 0.05 }
+          ] },
+          { "cols": 1, "fields": [
+            { "path": "props.captions", "label": "讲稿文本", "widget": "text", "default": "", "placeholder": "这段播报念的原文，用于导出视频时烧字幕", "desc": "导出 video（mp4）时按这段文本烧字幕（数字人页通常没有独立旁白轨，字幕只能挂在这里）。留空则该页不出字幕。" }
           ] }
         ] },
         { "sep": true, "title": "剪辑", "rows": [

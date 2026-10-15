@@ -22,6 +22,7 @@ from .core import icon_catalog
 from .core import projects as projects_mod
 from .core import scene_capture, scene_gif
 from .core import scene_libs as scene_libs_mod
+from .core import video_export
 from .core.errors import CoreError
 from .core.paths import MANIFEST_NAME
 from .core.store import (
@@ -500,13 +501,19 @@ def attach_dh_posters(path: str, force: bool = False) -> dict:
 
 
 def export(path: str, fmt: str = "pptx", out_dir: str = "", scene_gifs=None, **options) -> dict:
-    """导出。fmt ∈ html | pdf | pptx | png | svg；默认落到工程内的 export/ 目录。
+    """导出。fmt ∈ html | pdf | pptx | png | svg | video；默认落到工程内的 export/ 目录。
 
-    - pptx 需 python-pptx；pdf / png / svg 需本机 Edge/Chrome（无头打印/渲染）。
+    - pptx 需 python-pptx；pdf / png / svg 需本机 Edge/Chrome（无头打印/渲染）；
+      video 需本机 Edge/Chrome（截静帧）+ ffmpeg（含 libass、libx264，imageio-ffmpeg 的静态构建即可）。
     - png / svg 额外支持 options：pages（"1" / "1,3" / "2-5"，空=全部）、
       dpi（96/150/300/600）、transparent（bool）。
     - mediaMode（演示模式）：plain = 纯 PPT（导出时剥掉 audio / digital_human，安静放映），
-      full = 默认（音频 / 数字人照常嵌入）。UI 导出弹窗三选一即走这里。
+      full = 默认（音频 / 数字人照常嵌入）。UI 导出弹窗三选一即走这里。video 拒绝 plain（会静音）。
+    - video 额外支持 options：fps（默认 25）、width（默认 1920，按画布比例算高）、dpi（静帧，默认 300）、
+      tail（旁白念完后再停几秒，默认 0.8）、min_seconds（无旁白页的停留秒，默认 4）、
+      captions=False 关字幕、font / font_size 字幕样式、page_seconds（强制每页秒数，可给列表）、
+      preset / crf（x264 参数）、keep_segments=True 保留逐页分段、timeout（单页编码上限，默认 1800 秒）。
+      字幕文本取 audio / digital_human 元素的 props.captions，没填就没字幕（会在 warnings 里点名）。
 
     微场景 vs 导出格式：
     - html：微场景是真身（沙箱 iframe 跑 props.code），会动；
@@ -563,7 +570,11 @@ def export(path: str, fmt: str = "pptx", out_dir: str = "", scene_gifs=None, **o
         return export_mod.export_png(src, manifest, out_dir=out_dir, options=options or None)
     if fmt == "svg":
         return export_mod.export_svg(src, manifest, out_dir=out_dir, options=options or None)
-    raise CoreError(f"不支持的导出格式：{fmt}（可选 html / pdf / pptx / png / svg）")
+    if fmt == "video":
+        if media_mode == "plain":
+            raise CoreError("视频导出不能用 mediaMode=plain：那会剥掉旁白和数字人，成片只剩静音画面")
+        return video_export.export_video(src, manifest, out_dir=out_dir, options=options or None)
+    raise CoreError(f"不支持的导出格式：{fmt}（可选 html / pdf / pptx / png / svg / video）")
 
 
 # ---------------------------------------------------------------- 微场景（scene）
