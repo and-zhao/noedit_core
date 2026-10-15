@@ -1,6 +1,6 @@
 ---
 name: noedit-core
-description: 用 NoEdit Core 直接做 PPT / 幻灯片 / 多页画布并导出 pptx、pdf、html、png、svg。当用户要做演示文稿、多页画布、把素材排成页面、或要导出上述格式时使用。不用于修图或纯文本文档。
+description: 用 NoEdit Core 直接做 PPT / 幻灯片 / 多页画布并导出 pptx、pdf、html、png、svg、带配音字幕的 mp4 视频。当用户要做演示文稿、多页画布、把素材排成页面、要一份能直接放的科普视频、或要导出上述格式时使用。不用于修图或纯文本文档。
 ---
 
 # NoEdit Core 使用规则
@@ -293,10 +293,15 @@ def build_content_page(page_index, title, bullets):
 **这是流程最后一个必问节点。** 只要「所有页元素已写完」，**不管阶段 6 用户选没选检查**，都要用 `AskUserQuestion` **弹卡**问：
 
 - 「需要导出吗？」—— **不导出（工程文件就够）** / 需要；
-- 「要哪些格式？」（多选）—— PPTX / PDF / HTML / PNG / SVG。
+- 「要哪些格式？」（多选）—— PPTX / PDF / HTML / PNG / SVG / **MP4 视频**。
 
 > 有微场景（`scene`）元素时，导出卡里顺带说清：**PPTX 会自动把微场景抓帧成 GIF 内嵌（会动，需本机 Edge/Chrome）**；
 > PNG / SVG / PDF 是静态帧。想单独拿 GIF 文件，用 `api.export_scene_gif(path, match=...)`。
+
+> 选了 **MP4 视频**（`fmt="video"`）就先说清两件事，别让用户等半天才发现问题：
+> ① **每条旁白 / 数字人都要填 `props.captions`**（它念的原文），没填的那页在成片里**没有字幕**；
+> ② **要跑 15~20 分钟量级**（逐页截帧 + 编码，需本机 Edge/Chrome + ffmpeg），14 页 ≈ 一份成片。
+> 细节与 options 见 [references/export.md](references/export.md) 的 video 一节。
 
 > ⛔ **不许只在正文里写一句「要不要导出」就把这轮结束掉**——那等于没问。`AskUserQuestion` 卡片没弹出来就等于没问。**漏问导出 = 整轮流程没走完。**
 
@@ -456,7 +461,7 @@ UI 的后端就是 `noedit_core.api`（HTTP JSON-RPC），数据落在同一份 
 | `icon_list(group="", limit=200)` | 列某分组图标（精简字段，不带 `d`） | `group` 空 = 只回分组概览 |
 | `icon_search(keyword="", group="", limit=40)` | 按关键词搜图标 | 匹配英文名 / id / 中文分组名 |
 | `icon_insert(path, icon_id, x=None, y=None, size=150, color="#2f6fed", ...)` | 插图标成可编辑元素 | 单色→1 个 `path`；多色→`group` + 成员 |
-| `export(path, fmt="pptx", out_dir="", **options)` | 导出 | `fmt ∈ html/pdf/pptx/png/svg` |
+| `export(path, fmt="pptx", out_dir="", **options)` | 导出 | `fmt ∈ html/pdf/pptx/png/svg/video` |
 | `element_types()` | 列元素类型 + `modelNote` | |
 
 ### 元素定位：`element_id` 或 `match`

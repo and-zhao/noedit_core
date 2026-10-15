@@ -119,6 +119,10 @@ api.check_media(P)["problems"]   # 断图 / 外链 / poster 指向 mp4 都会点
 - **HTML**：进视口后 `startAt` 秒自动开始播报，离视口暂停；名牌徽章显示名字。
 - **PPTX**：`add_movie` 真嵌 MP4（放映可播可听），封面帧 + 名牌当海报。
 - **PDF / PNG / SVG**：静态封面帧 + 名牌徽章。
+- **video（mp4 成片）**：这一页的画面 = 该页静帧当底图 + **按元素坐标叠上这个视频**（所以数字人页不运镜，
+  否则叠层会漂），声音 = 这个视频的音轨，页长 = 它播完 + `tail`；字幕取 `props.captions`。
+  **要出视频就必须填 `props.captions`**（这个数字人念的原文，通常就是你喂给它的讲稿音频那份文本），
+  不填那页没字幕（`warnings` 会点名）。`startTime` / `endTime` 剪辑在成片里同样生效。
 - **UI 导出弹窗**：用户三选一——**纯 PPT**（`export(..., mediaMode="plain")` 剥掉音频与数字人）/
   **音频模式**（保留 audio）/ **数字人模式**（全保留）。**主动问用户要哪种**；
   现场放映场景默认建议纯 PPT。
@@ -134,6 +138,7 @@ api.export(P, "pptx", out_dir=...)                       # 默认 full（保留�
 - ❌ `props.poster` 写 mp4 路径（那是视频，不是封面帧——用 `attach_dh_posters` 补）；
 - ❌ 生成失败只抛错就收工：`auto` 的 `note` 里写了哪档为什么崩，照着装依赖或换档再跑；
 - ❌ 一页塞 2 个数字人；
+- ❌ 打算导 mp4 却没给数字人填 `props.captions`（成片这页有人说话却没字幕）；
 - ❌ 用 Wav2Lip 做商用交付（License 明确禁止）；
 - ❌ 没探测引擎就调 `engine="liveportrait"`（报 missing repo）；
 - ❌ 现场演讲场合硬加数字人；
